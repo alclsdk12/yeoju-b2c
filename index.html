@@ -130,7 +130,7 @@ input,select{font-size:12px;padding:3px 6px;height:26px;border:0.5px solid var(-
 </div>
 
 <!-- ===== 요약 ===== -->
-<div id="sec-summary" class="sec on">
+<div id="sec-summary" class="sec on" style="background:#f5f5f3;padding:16px;border-radius:12px;">
 
   <!-- KPI 4개 -->
   <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px;">
@@ -224,10 +224,10 @@ input,select{font-size:12px;padding:3px 6px;height:26px;border:0.5px solid var(-
   </div>
 
   <!-- 통합 차트 -->
-  <div class="ss mb">
+  <div style="background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:12px;padding:1rem;margin-bottom:1rem;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
-      <span class="sst" style="border:none;margin:0;padding:0;">시간대별 인입 / 처리량 / 누적처리율</span>
-      <div style="display:flex;gap:12px;font-size:11px;color:var(--ts);">
+      <span style="font-size:12px;font-weight:500;color:#333;">시간대별 인입 / 처리량 / 누적처리율</span>
+      <div style="display:flex;gap:12px;font-size:11px;color:#888;">
         <span style="display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#378ADD;display:inline-block;"></span>주문 인입</span>
         <span style="display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#1D9E75;display:inline-block;"></span>처리량</span>
         <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:2px;background:#BA7517;display:inline-block;"></span>누적처리율</span>
@@ -1036,7 +1036,17 @@ function purgeOldDay(rows){
   const filtered=rows.filter(r=>{const dv=(r['출고일자']||r['확정일자']||'').toString().trim(),tv=(r['출고시간']||r['확정시간']||'').toString().trim();if(!dv||!tv){kept++;return true;}let ds=dv.includes('-')?dv.slice(0,10):dv.slice(0,10);const h=parseInt(tv.split(':')[0]);if(ds===ts&&h<CUT_HOUR){removed++;return false;}kept++;return true;});
   return{filtered,kept,removed,todayStr:ts};
 }
-function dedup(rows){const seen=new Set();return rows.filter(r=>{const key=(r['출고번호']||'').toString().trim();if(!key)return true;if(seen.has(key))return false;seen.add(key);return true;});}
+function dedup(rows){
+  const seen=new Set();
+  return rows.filter(r=>{
+    const status=(r['출고상태']||'').toString().trim().replace(/\s/g,'');
+    if(status==='오더취소'||status==='주문취소'||status.toUpperCase()==='ORDERCANCEL'||status==='취소')return false;
+    const key=(r['출고번호']||'').toString().trim();
+    if(!key)return true;
+    if(seen.has(key))return false;
+    seen.add(key);return true;
+  });
+}
 
 function handleRaw(inp){
   const file=inp.files[0];if(!file)return;
@@ -1129,8 +1139,9 @@ function buildFloorRows(rows){
 
 function renderAll(){
   const rows=snapshots[snapshots.length-1].rows;
-  renderSummary(rows);renderFloorDetail(rows);renderClient();
+  renderFloorDetail(rows);renderClient();
   calcBasic();calcCBM();calcLabor();calcOTNeeded();
+  renderSummary(rows);
   if(currentTab==='hourly')renderHourlyDetail();
   renderSummaryCharts();
 }
@@ -1148,9 +1159,18 @@ function renderSummary(rows){
   document.getElementById('s-undone').textContent=ud.toLocaleString();
   document.getElementById('s-undone-sub').textContent='미할당 '+nw.toLocaleString()+' · 상차 '+rd.toLocaleString();
 
-  // 출고완료 카드
-  const dQ=parseInt(document.getElementById('lr-day-qty')?.textContent)||0;
-  const nQ=parseInt(document.getElementById('lr-ngt-qty')?.textContent)||0;
+  // 출고완료 주간/야간 직접 계산 (RAW 기준)
+  function getQtyByShift(h1,h2){
+    return rows.filter(r=>{
+      if((r['출고상태']||'').toString()!=='출고완료')return false;
+      const t=(r['출고시간']||r['확정시간']||'').toString();
+      if(!t)return false;
+      const h=parseInt(t.split(':')[0]);
+      return h1<=h2?h>=h1&&h<h2:h>=h1||h<h2;
+    }).length;
+  }
+  const dQ=getQtyByShift(6,18);
+  const nQ=getQtyByShift(18,6);
   const dUPH=document.getElementById('lr-day-uph')?.textContent||'-';
   const nUPH=document.getElementById('lr-ngt-uph')?.textContent||'-';
   const tUPH=document.getElementById('lr-tot-uph')?.textContent||'-';
@@ -1184,15 +1204,15 @@ function renderSummary(rows){
 
   const wmsEl=document.getElementById('sum-wms-tables');
   if(wmsEl){
-    const TH='padding:7px 10px;text-align:center;font-size:12px;font-weight:600;background:#e8eef5;color:#333;border-bottom:2px solid #c8d4e0;border-right:0.5px solid #d8e2ea;white-space:nowrap;';
-    const THL='padding:7px 10px;text-align:left;font-size:12px;font-weight:600;background:#e8eef5;color:#333;border-bottom:2px solid #c8d4e0;border-right:0.5px solid #d8e2ea;white-space:nowrap;';
-    const TD='padding:6px 10px;text-align:center;font-size:12px;font-weight:500;color:#111;border-bottom:0.5px solid #e8eaed;border-right:0.5px solid #e8eaed;';
-    const TDL='padding:6px 10px;text-align:left;font-size:12px;font-weight:500;color:#111;border-bottom:0.5px solid #e8eaed;border-right:0.5px solid #e8eaed;';
-    function tdU(v,bg=''){return`<td style="${TD}${bg}background:#FCEBEB;color:#A32D2D;font-weight:700;font-size:13px;">${v.toLocaleString()}</td>`;}
-    function tdD(v,bg=''){return`<td style="${TD}${bg}color:#1D6B2F;font-weight:700;font-size:13px;">${v>0?v.toLocaleString():'-'}</td>`;}
-    function tdP(p,bg=''){const col=p>=80?'#3B9E22':p>=40?'#BA7517':'#E24B4A';const tc=p>=80?'#1D6B2F':p>=40?'#7A4500':'#A32D2D';return`<td style="${TD}${bg}min-width:110px;"><div style="display:flex;align-items:center;gap:5px;"><div style="flex:1;background:#d8d8d8;border-radius:3px;height:8px;"><div style="height:8px;border-radius:3px;width:${Math.min(p,100)}%;background:${col};"></div></div><span style="font-size:12px;font-weight:700;color:${tc};min-width:32px;">${p}%</span></div></td>`;}
-    function wmsRow(label,v,isTot){const p=v.tot>0?Math.round(v.dn/v.tot*100):0;const ud2=undone(v);const bg=isTot?'background:#EBF3FF;':'';const fs=isTot?'font-size:13px;font-weight:700;':'';return`<tr><td style="${TDL}${bg}${fs}">${label}</td><td style="${TD}${bg}${fs}">${v.tot.toLocaleString()}</td><td style="${TD}${bg}">${v.nw>0?v.nw.toLocaleString():'-'}</td><td style="${TD}${bg}">${v.al>0?v.al.toLocaleString():'-'}</td><td style="${TD}${bg}">${v.pk>0?v.pk.toLocaleString():'-'}</td><td style="${TD}${bg}">${v.rd>0?v.rd.toLocaleString():'-'}</td>${tdU(ud2,bg)}${tdD(v.dn,bg)}${tdP(p,bg)}</tr>`;}
-    function wmsTable(title,color,rows2,col1){return`<div style="margin-bottom:12px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;"><div style="width:4px;height:16px;background:${color};border-radius:2px;"></div><span style="font-size:13px;font-weight:600;color:#1a1a18;">${title}</span><span style="font-size:11px;color:#aaa;">(단위: 건)</span></div><table style="width:100%;border-collapse:collapse;border:0.5px solid #e0e6ed;"><thead><tr><th style="${THL}">${col1}</th><th style="${TH}">총합계</th><th style="${TH}">미할당</th><th style="${TH}">할당완료</th><th style="${TH}">피킹완료</th><th style="${TH}">상차대기</th><th style="${TH}background:#FCEBEB;color:#A32D2D;">미작업</th><th style="${TH}background:#EAF3DE;color:#3B6D11;">출고완료</th><th style="${TH}">진척도</th></tr></thead><tbody>${rows2.map(r=>wmsRow(r.label,r.v,false)).join('')}${wmsRow('계',totStat,true)}</tbody></table></div>`;}
+    const TH='padding:5px 4px;text-align:center;font-size:11px;font-weight:600;background:#e8eef5;color:#333;border-bottom:2px solid #c8d4e0;border-right:0.5px solid #d8e2ea;white-space:nowrap;';
+    const THL='padding:5px 6px;text-align:left;font-size:11px;font-weight:600;background:#e8eef5;color:#333;border-bottom:2px solid #c8d4e0;border-right:0.5px solid #d8e2ea;white-space:nowrap;';
+    const TD='padding:4px 4px;text-align:center;font-size:11px;font-weight:500;color:#111;border-bottom:0.5px solid #e8eaed;border-right:0.5px solid #e8eaed;background:#fff;';
+    const TDL='padding:4px 6px;text-align:left;font-size:11px;font-weight:500;color:#111;border-bottom:0.5px solid #e8eaed;border-right:0.5px solid #e8eaed;background:#fff;';
+    function tdU(v,bg=''){return`<td style="${TD}${bg}background:#FCEBEB;color:#A32D2D;font-weight:700;">${v.toLocaleString()}</td>`;}
+    function tdD(v,bg=''){return`<td style="${TD}${bg}color:#1D6B2F;font-weight:700;">${v>0?v.toLocaleString():'-'}</td>`;}
+    function tdP(p,bg=''){const col=p>=80?'#3B9E22':p>=40?'#BA7517':'#E24B4A';const tc=p>=80?'#1D6B2F':p>=40?'#7A4500':'#A32D2D';return`<td style="${TD}${bg}min-width:80px;"><div style="display:flex;align-items:center;gap:3px;"><div style="flex:1;background:#d8d8d8;border-radius:2px;height:6px;"><div style="height:6px;border-radius:2px;width:${Math.min(p,100)}%;background:${col};"></div></div><span style="font-size:10px;font-weight:700;color:${tc};min-width:26px;">${p}%</span></div></td>`;}
+    function wmsRow(label,v,isTot){const p=v.tot>0?Math.round(v.dn/v.tot*100):0;const ud2=undone(v);const bg=isTot?'background:#EBF3FF;':'';const fs=isTot?'font-weight:700;':'';return`<tr><td style="${TDL}${bg}${fs}">${label}</td><td style="${TD}${bg}${fs}">${v.tot.toLocaleString()}</td><td style="${TD}${bg}">${v.nw>0?v.nw.toLocaleString():'-'}</td><td style="${TD}${bg}">${v.al>0?v.al.toLocaleString():'-'}</td><td style="${TD}${bg}">${v.pk>0?v.pk.toLocaleString():'-'}</td><td style="${TD}${bg}">${v.rd>0?v.rd.toLocaleString():'-'}</td>${tdU(ud2,bg)}${tdD(v.dn,bg)}${tdP(p,bg)}</tr>`;}
+    function wmsTable(title,color,rows2,col1){return`<div style="margin-bottom:12px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;"><div style="width:4px;height:14px;background:${color};border-radius:2px;"></div><span style="font-size:12px;font-weight:600;color:#1a1a18;">${title}</span><span style="font-size:10px;color:#aaa;">(단위: 건)</span></div><table style="width:100%;table-layout:fixed;border-collapse:collapse;border:0.5px solid #e0e6ed;"><colgroup><col style="width:130px"><col style="width:70px"><col style="width:65px"><col style="width:70px"><col style="width:70px"><col style="width:65px"><col style="width:70px"><col style="width:70px"><col style="width:90px"></colgroup><thead><tr><th style="${THL}">${col1}</th><th style="${TH}">총합계</th><th style="${TH}">미할당</th><th style="${TH}">할당완료</th><th style="${TH}">피킹완료</th><th style="${TH}">상차대기</th><th style="${TH}background:#FCEBEB;color:#A32D2D;">미작업</th><th style="${TH}background:#EAF3DE;color:#3B6D11;">출고완료</th><th style="${TH}">진척도</th></tr></thead><tbody>${rows2.map(r=>wmsRow(r.label,r.v,false)).join('')}${wmsRow('계',totStat,true)}</tbody></table></div>`;}
 
     // 층별 테이블
     const fd={};FLOORS.forEach(f=>{fd[f]={};ORDER_TYPES.forEach(o=>fd[f][o]=mkStat());fd[f]._tot=mkStat();});
@@ -1210,7 +1230,7 @@ function renderSummary(rows){
     wmsEl.innerHTML=
       wmsTable('(요약) 배송유형별 출고 현황','#185FA5',DELIVERY_ORDER.filter(k=>dMap[k]&&dMap[k].tot>0).map(k=>({label:k,v:dMap[k]})),'배송유형')+
       wmsTable('(합계) 출고 현황 (주문분류기준)','#3B6D11',ORDER_TYPES.filter(k=>oMap[k]&&oMap[k].tot>0).map(k=>({label:k,v:oMap[k]})),'구분')+
-      `<div style="margin-bottom:12px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;"><div style="width:4px;height:16px;background:#BA7517;border-radius:2px;"></div><span style="font-size:13px;font-weight:600;color:#1a1a18;">(합계) 층별 출고 현황</span><span style="font-size:11px;color:#aaa;">(단위: 건)</span></div><table style="width:100%;border-collapse:collapse;border:0.5px solid #e0e6ed;"><thead><tr><th style="${THL}">작업 층</th><th style="${THL}">구분</th><th style="${TH}">총합계</th><th style="${TH}">미할당</th><th style="${TH}">할당완료</th><th style="${TH}">피킹완료</th><th style="${TH}">상차대기</th><th style="${TH}background:#FCEBEB;color:#A32D2D;">미작업</th><th style="${TH}background:#EAF3DE;color:#3B6D11;">출고완료</th><th style="${TH}">진척도</th></tr></thead><tbody>${floorRows}</tbody></table></div>`;
+      `<div style="margin-bottom:12px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;"><div style="width:4px;height:14px;background:#BA7517;border-radius:2px;"></div><span style="font-size:12px;font-weight:600;color:#1a1a18;">(합계) 층별 출고 현황</span><span style="font-size:10px;color:#aaa;">(단위: 건)</span></div><table style="width:100%;table-layout:fixed;border-collapse:collapse;border:0.5px solid #e0e6ed;"><colgroup><col style="width:55px"><col style="width:75px"><col style="width:65px"><col style="width:60px"><col style="width:65px"><col style="width:65px"><col style="width:60px"><col style="width:65px"><col style="width:65px"><col style="width:85px"></colgroup><thead><tr><th style="${THL}">작업 층</th><th style="${THL}">구분</th><th style="${TH}">총합계</th><th style="${TH}">미할당</th><th style="${TH}">할당완료</th><th style="${TH}">피킹완료</th><th style="${TH}">상차대기</th><th style="${TH}background:#FCEBEB;color:#A32D2D;">미작업</th><th style="${TH}background:#EAF3DE;color:#3B6D11;">출고완료</th><th style="${TH}">진척도</th></tr></thead><tbody>${floorRows}</tbody></table></div>`;
   }
 }
 
@@ -1655,6 +1675,8 @@ function calcLabor(){
   renderUphGauge();
   if(currentTab==='hourly')renderHourlyDetail();
   calcOTNeeded();
+  // 요약 탭 인력/생산성 카드 갱신
+  if(snapshots.length)renderSummary(snapshots[snapshots.length-1].rows);
 }
 
 function renderUphGauge(){
