@@ -439,6 +439,9 @@ input,select{font-size:12px;padding:3px 6px;height:26px;border:0.5px solid var(-
 
 <div class="toast" id="cap-toast">클립보드에 복사됐습니다</div>
 
+<!-- 캡처 전용 레이아웃 (숨김) -->
+<div id="cap-layout" style="position:absolute;left:-9999px;top:0;width:1100px;background:#fff;padding:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;"></div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -496,6 +499,20 @@ function go(t){
 }
 
 async function captureTab(){
+  if(currentTab==='summary'&&snapshots.length){
+    buildCapLayout();
+    showToast('캡처 중...');
+    await new Promise(r=>setTimeout(r,300));
+    const el=document.getElementById('cap-layout');
+    try{
+      const canvas=await html2canvas(el,{backgroundColor:'#ffffff',scale:2,useCORS:true,logging:false});
+      canvas.toBlob(async blob=>{
+        try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);showToast('클립보드에 복사됐습니다');}
+        catch(e){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;const now=new Date();a.download='출고현황_'+(now.getMonth()+1)+'월'+now.getDate()+'일_'+now.getHours()+'시'+String(now.getMinutes()).padStart(2,'0')+'분.png';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);showToast('이미지 파일로 다운로드됩니다');}
+      },'image/png');
+    }catch(e){showToast('캡처 실패');}
+    return;
+  }
   const el=document.getElementById('sec-'+currentTab);if(!el)return;
   showToast('캡처 중...');
   try{
@@ -505,6 +522,417 @@ async function captureTab(){
       catch(e){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='출고현황_'+currentTab+'.png';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);showToast('이미지 파일로 다운로드됩니다');}
     },'image/png');
   }catch(e){showToast('캡처 실패');}
+}
+
+function buildCapLayout(){
+  const rows=snapshots[snapshots.length-1].rows;
+  const now=new Date();
+  const snap=snapshots[snapshots.length-1];
+  const dateStr=(now.getMonth()+1)+'월'+now.getDate()+'일('+['일','월','화','수','목','금','토'][now.getDay()]+') '+snap.time+' 기준';
+
+  // 집계
+  let tot=rows.length,nw=0,al=0,pk=0,rd=0,dn=0;
+  rows.forEach(r=>{const s=statusOf(r);if(s==='new')nw++;else if(s==='alloc')al++;else if(s==='pick')pk++;else if(s==='ready')rd++;else dn++;});
+  const ud=nw+al+pk+rd;
+  const prog=Math.round(dn/tot*100);
+  const pCol=prog>=80?'#3B6D11':prog>=40?'#854F0B':'#A32D2D';
+  const pBar=prog>=80?'#639922':prog>=40?'#BA7517':'#E24B4A';
+
+  // 배송유형별
+  const dMap={};
+  rows.forEach(r=>{const d=normalizeDelivery(r['배송유형']);const s=statusOf(r);if(d){if(!dMap[d])dMap[d]=mkStat();addStat(dMap[d],s);}});
+
+  // 주문분류별
+  const oMap={};
+  rows.forEach(r=>{const o=normalizeOrder(r['주문분류']);const s=statusOf(r);if(o){if(!oMap[o])oMap[o]=mkStat();addStat(oMap[o],s);}});
+
+  // 층별
+  const fMap={};
+  FLOORS.forEach(f=>fMap[f]=mkStat());
+  rows.forEach(r=>{const id=(r['고객 ID']||r['고객ID']||'').toString().trim();const f=floorOf(id);if(fMap[f])addStat(fMap[f],statusOf(r));});
+
+  // 인력/생산성
+  const tDMH=parseInt(document.getElementById('lr-tot-dmh')?.textContent)||0;
+  const tNMH=parseInt(document.getElementById('lr-tot-nmh')?.textContent)||0;
+  const tPpl=parseInt(document.getElementById('lr-tot-ppl')?.textContent)||0;
+  const dUPH=document.getElementById('lr-day-uph')?.textContent||'-';
+  const nUPH=document.getElementById('lr-ngt-uph')?.textContent||'-';
+  const tUPH=document.getElementById('lr-tot-uph')?.textContent||'-';
+  const dQty=document.getElementById('lr-day-qty')?.textContent||'-';
+  const nQty=document.getElementById('lr-ngt-qty')?.textContent||'-';
+  // 주/석/야 인원
+  const dayPpl=parseInt(document.getElementById('l-day-ppl')?.value)||0;
+  const evePpl=parseInt(document.getElementById('l-eve-ppl')?.value)||0;
+  const ngtPpl=parseInt(document.getElementById('l-ngt-ppl')?.value)||0;
+
+  // 배차
+  const dispEl=document.getElementById('s-dispatch')?.textContent||'-';
+  const dispSub=document.getElementById('s-dispatch-sub')?.textContent||'-';
+
+  function gaugeBar(p,w){
+    const col=p>=80?'#639922':p>=40?'#BA7517':'#E24B4A';
+    const tc=p>=80?'#3B6D11':p>=40?'#854F0B':'#A32D2D';
+    return`<div style="display:flex;align-items:center;gap:4px;${w?'min-width:'+w+'px;':''}">
+      <div style="flex:1;background:#e8e8e8;border-radius:3px;height:6px;"><div style="height:6px;border-radius:3px;width:${Math.min(p,100)}%;background:${col};"></div></div>
+      <span style="font-size:10px;font-weight:500;color:${tc};min-width:26px;text-align:right;">${p}%</span>
+    </div>`;
+  }
+
+  function miniCard(rows_data,hdrColor,title){
+    return`<div style="background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:10px;overflow:hidden;">
+      <div style="background:${hdrColor};color:#fff;padding:7px 12px;font-size:13px;font-weight:500;">${title}</div>
+      <div style="padding:8px 12px;">
+        ${rows_data.map((r,i,arr)=>{
+          const p=r.tot>0?Math.round(r.dn/r.tot*100):0;
+          const isLast=i===arr.length-1;
+          return`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:${isLast?'none':'0.5px solid rgba(0,0,0,0.06)'};gap:6px;${isLast?'background:#f5f5f4;margin:0 -12px;padding:5px 12px;':''}">
+            <span style="font-size:12px;color:${isLast?'#185FA5':'#6b6b68'};font-weight:${isLast?'500':'400'};white-space:nowrap;min-width:90px;">${r.label}</span>
+            <span style="font-size:12px;font-weight:500;color:#1a1a18;white-space:nowrap;">${r.dn.toLocaleString()} / ${r.tot.toLocaleString()}</span>
+            ${gaugeBar(p,90)}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  // 배송유형 카드용 데이터
+  const dRows=DELIVERY_ORDER.filter(k=>dMap[k]&&dMap[k].tot>0).map(k=>({label:k,tot:dMap[k].tot,dn:dMap[k].dn}));
+  dRows.push({label:'합계',tot,dn});
+
+  // 주문분류 카드용
+  const oRows=ORDER_TYPES.filter(k=>oMap[k]&&oMap[k].tot>0).map(k=>({label:k,tot:oMap[k].tot,dn:oMap[k].dn}));
+  oRows.push({label:'합계',tot,dn});
+
+  // 층별 카드용
+  const fRows=FLOORS.filter(f=>fMap[f]&&fMap[f].tot>0).map(f=>({label:f,tot:fMap[f].tot,dn:fMap[f].dn}));
+  fRows.push({label:'총계',tot,dn});
+
+  // 배송유형 상세 테이블
+  function tblRow(label,v,cls=''){
+    const p=v.tot>0?Math.round(v.dn/v.tot*100):0;
+    return`<tr style="${cls}">
+      <td style="text-align:left;font-weight:${cls?'500':'400'};padding:4px 8px;">${label}</td>
+      <td style="padding:4px 8px;">${v.tot.toLocaleString()}</td>
+      <td style="padding:4px 8px;">${v.nw.toLocaleString()}</td>
+      <td style="padding:4px 8px;">${v.al.toLocaleString()}</td>
+      <td style="padding:4px 8px;">${v.pk.toLocaleString()}</td>
+      <td style="padding:4px 8px;">${v.rd.toLocaleString()}</td>
+      <td style="padding:4px 8px;font-weight:500;">${undone(v).toLocaleString()}</td>
+      <td style="padding:4px 8px;font-weight:500;color:#3B6D11;">${v.dn.toLocaleString()}</td>
+      <td style="padding:4px 8px;min-width:110px;">${gaugeBar(p)}</td>
+    </tr>`;
+  }
+  // 테이블 스타일 정의
+  const TH='padding:9px 12px;text-align:center;font-size:14px;font-weight:700;background:#e8eef5;color:#111;border-bottom:2px solid #b0c0d4;border-right:0.5px solid #ccd6e0;white-space:nowrap;';
+  const THL='padding:9px 12px;text-align:left;font-size:14px;font-weight:700;background:#e8eef5;color:#111;border-bottom:2px solid #b0c0d4;border-right:0.5px solid #ccd6e0;white-space:nowrap;';
+  const TD='padding:8px 12px;text-align:center;font-size:14px;font-weight:500;color:#111;border-bottom:0.5px solid #dde2e8;border-right:0.5px solid #dde2e8;';
+  const TDL='padding:8px 12px;text-align:left;font-size:14px;font-weight:500;color:#111;border-bottom:0.5px solid #dde2e8;border-right:0.5px solid #dde2e8;';
+
+  // 미작업 강조: 빨간 배경 + 흰 글씨
+  function tdUndone(val,bg=''){return`<td style="${TD}${bg}background:#FCEBEB;color:#A32D2D;font-weight:800;font-size:16px;">${val.toLocaleString()}</td>`;}
+  function tdDone(val,bg=''){return`<td style="${TD}${bg}color:#1D6B2F;font-weight:800;font-size:16px;">${val>0?val.toLocaleString():'-'}</td>`;}
+  function tdProg(p,bg=''){
+    const col=p>=80?'#3B9E22':p>=40?'#BA7517':'#E24B4A';
+    const tc=p>=80?'#1D6B2F':p>=40?'#7A4500':'#A32D2D';
+    return`<td style="${TD}${bg}min-width:120px;">
+      <div style="display:flex;align-items:center;gap:7px;">
+        <div style="flex:1;background:#d8d8d8;border-radius:4px;height:10px;"><div style="height:10px;border-radius:4px;width:${Math.min(p,100)}%;background:${col};"></div></div>
+        <span style="font-size:15px;font-weight:800;color:${tc};min-width:36px;">${p}%</span>
+      </div>
+    </td>`;
+  }
+
+  function capTR(label,v,isTot,leftAlign){
+    const p=v.tot>0?Math.round(v.dn/v.tot*100):0;
+    const ud=undone(v);
+    const bg=isTot?'background:#EBF3FF;':'';
+    const lStyle=isTot
+      ?`${leftAlign?TDL:TD}${bg}font-weight:800;font-size:15px;`
+      :`${leftAlign?TDL:TD}`;
+    return`<tr>
+      <td style="${lStyle}">${label}</td>
+      <td style="${TD}${bg}${isTot?'font-weight:800;font-size:15px;':''}">${v.tot.toLocaleString()}</td>
+      <td style="${TD}${bg}">${v.nw>0?v.nw.toLocaleString():'-'}</td>
+      <td style="${TD}${bg}">${v.al>0?v.al.toLocaleString():'-'}</td>
+      <td style="${TD}${bg}">${v.pk>0?v.pk.toLocaleString():'-'}</td>
+      <td style="${TD}${bg}">${v.rd>0?v.rd.toLocaleString():'-'}</td>
+      ${tdUndone(ud,bg)}
+      ${tdDone(v.dn,bg)}
+      ${tdProg(p,bg)}
+    </tr>`;
+  }
+
+  function buildCapTable(title,accentColor,dataRows,totStat,col1Header){
+    return`<div style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:4px;height:16px;background:${accentColor};border-radius:2px;"></div>
+        <span style="font-size:13px;font-weight:600;color:#1a1a18;">${title}</span>
+        <span style="font-size:11px;color:#aaa;">(단위: 건)</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;border:0.5px solid #e0e6ed;border-radius:8px;overflow:hidden;">
+        <thead><tr>
+          <th style="${THL}">${col1Header||'배송유형'}</th>
+          <th style="${TH}">총합계</th><th style="${TH}">미할당</th><th style="${TH}">할당완료</th>
+          <th style="${TH}">피킹완료</th><th style="${TH}">상차대기</th>
+          <th style="${TH}background:#FCEBEB;color:#A32D2D;">미작업</th>
+          <th style="${TH}background:#EAF3DE;color:#3B6D11;">출고완료</th>
+          <th style="${TH}">진척도</th>
+        </tr></thead>
+        <tbody>
+          ${dataRows.map(r=>capTR(r.label,r.v,false,true)).join('')}
+          ${capTR('계',totStat,true,true)}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  function buildFloorCapTable(rows,totStat){
+    const fd={};
+    FLOORS.forEach(f=>{fd[f]={};ORDER_TYPES.forEach(o=>fd[f][o]=mkStat());fd[f]._tot=mkStat();});
+    rows.forEach(r=>{
+      const id=(r['고객 ID']||r['고객ID']||'').toString().trim();
+      const f=floorOf(id);if(!fd[f])return;
+      const o=normalizeOrder(r['주문분류']),s=statusOf(r);
+      addStat(fd[f]._tot,s);if(o&&fd[f][o])addStat(fd[f][o],s);
+    });
+    let tbRows='';
+    FLOORS.forEach((f,fi)=>{
+      const ft=fd[f]._tot;if(!ft.tot)return;
+      const activeTypes=ORDER_TYPES.filter(o=>fd[f][o]&&fd[f][o].tot>0);
+      const floorBg=fi%2===0?'':'background:#fafafa;';
+      let first=true;
+      activeTypes.forEach(o=>{
+        const v=fd[f][o];if(!v.tot)return;
+        const p=v.tot>0?Math.round(v.dn/v.tot*100):0;
+        const ud=undone(v);
+        tbRows+=`<tr>
+          ${first?`<td style="${TDL}${floorBg}font-weight:700;font-size:14px;vertical-align:middle;border-right:2px solid #c8d4e0;" rowspan="${activeTypes.length+1}">${f}</td>`:''}
+          <td style="${TDL}${floorBg}font-weight:500;">${o}</td>
+          <td style="${TD}${floorBg}">${v.tot.toLocaleString()}</td>
+          <td style="${TD}${floorBg}">${v.nw>0?v.nw.toLocaleString():'-'}</td>
+          <td style="${TD}${floorBg}">${v.al>0?v.al.toLocaleString():'-'}</td>
+          <td style="${TD}${floorBg}">${v.pk>0?v.pk.toLocaleString():'-'}</td>
+          <td style="${TD}${floorBg}">${v.rd>0?v.rd.toLocaleString():'-'}</td>
+          ${tdUndone(ud,floorBg)}
+          ${tdDone(v.dn,floorBg)}
+          ${tdProg(p,floorBg)}
+        </tr>`;
+        first=false;
+      });
+      const fp=ft.tot>0?Math.round(ft.dn/ft.tot*100):0;
+      const fud=undone(ft);
+      tbRows+=`<tr>
+        <td style="${TDL}background:#e8eef5;font-weight:800;font-size:15px;">${f} 소계</td>
+        <td style="${TD}background:#e8eef5;font-weight:800;font-size:15px;">${ft.tot.toLocaleString()}</td>
+        <td style="${TD}background:#e8eef5;">${ft.nw>0?ft.nw.toLocaleString():'-'}</td>
+        <td style="${TD}background:#e8eef5;">${ft.al>0?ft.al.toLocaleString():'-'}</td>
+        <td style="${TD}background:#e8eef5;">${ft.pk>0?ft.pk.toLocaleString():'-'}</td>
+        <td style="${TD}background:#e8eef5;">${ft.rd>0?ft.rd.toLocaleString():'-'}</td>
+        ${tdUndone(fud,'background:#e8eef5;')}
+        ${tdDone(ft.dn,'background:#e8eef5;')}
+        ${tdProg(fp,'background:#e8eef5;')}
+      </tr>`;
+    });
+    const tp=totStat.tot>0?Math.round(totStat.dn/totStat.tot*100):0;
+    const tud=undone(totStat);
+    tbRows+=`<tr>
+      <td style="${TDL}background:#EBF3FF;font-weight:800;font-size:15px;" colspan="2">총계</td>
+      <td style="${TD}background:#EBF3FF;font-weight:800;font-size:15px;">${totStat.tot.toLocaleString()}</td>
+      <td style="${TD}background:#EBF3FF;">${totStat.nw>0?totStat.nw.toLocaleString():'-'}</td>
+      <td style="${TD}background:#EBF3FF;">${totStat.al>0?totStat.al.toLocaleString():'-'}</td>
+      <td style="${TD}background:#EBF3FF;">${totStat.pk>0?totStat.pk.toLocaleString():'-'}</td>
+      <td style="${TD}background:#EBF3FF;">${totStat.rd>0?totStat.rd.toLocaleString():'-'}</td>
+      ${tdUndone(tud,'background:#EBF3FF;')}
+      ${tdDone(totStat.dn,'background:#EBF3FF;')}
+      ${tdProg(tp,'background:#EBF3FF;')}
+    </tr>`;
+    return`<div style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:4px;height:16px;background:#BA7517;border-radius:2px;"></div>
+        <span style="font-size:13px;font-weight:600;color:#1a1a18;">(합계) 층별 출고 현황</span>
+        <span style="font-size:11px;color:#aaa;">(단위: 건)</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;border:0.5px solid #e0e6ed;">
+        <thead><tr>
+          <th style="${THL}">작업 층</th><th style="${THL}">구분</th>
+          <th style="${TH}">총합계</th><th style="${TH}">미할당</th><th style="${TH}">할당완료</th>
+          <th style="${TH}">피킹완료</th><th style="${TH}">상차대기</th>
+          <th style="${TH}background:#FCEBEB;color:#A32D2D;">미작업</th>
+          <th style="${TH}background:#EAF3DE;color:#3B6D11;">출고완료</th>
+          <th style="${TH}">진척도</th>
+        </tr></thead>
+        <tbody>${tbRows}</tbody>
+      </table>
+    </div>`;
+  }
+
+  // 배송유형 집계용 totStat 재선언
+  const totStat=mkStat();
+  totStat.nw=nw;totStat.al=al;totStat.pk=pk;totStat.rd=rd;totStat.dn=dn;totStat.tot=tot;
+
+  // 시간대별 차트 데이터
+  const orderByHour=hourlyOrderData?hourlyOrderData.hourlySum:{};
+  const doneByHour={};
+  rows.forEach(r=>{if(statusOf(r)!=='done')return;const t=(r['출고시간']||r['확정시간']||'').toString();if(!t)return;const h=parseInt(t.split(':')[0]);doneByHour[h]=(doneByHour[h]||0)+1;});
+  const pre=hourlyOrderData?hourlyOrderData.pre:0;
+  const chartLabels=['00~09',...Array.from({length:15},(v,i)=>(i+9)+'시')];
+  const oData=[pre,...Array.from({length:15},(v,i)=>orderByHour[i+9]||0)];
+  const dData=[Object.entries(doneByHour).filter(([h])=>parseInt(h)<9).reduce((a,[,v])=>a+v,0),...Array.from({length:15},(v,i)=>doneByHour[i+9]||0)];
+
+  const el=document.getElementById('cap-layout');
+  el.innerHTML=`
+  <div style="border-bottom:3px solid #185FA5;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;">
+    <span style="font-size:20px;font-weight:700;color:#1a1a18;">여주B2C센터 출고현황</span>
+    <span style="font-size:14px;color:#555;font-weight:500;">${dateStr} · 업로드 ${snapshots.length}회</span>
+  </div>
+
+  <!-- KPI 상단 4개 -->
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px;">
+    <div style="background:#EBF3FF;border-radius:10px;padding:14px 16px;border-left:4px solid #185FA5;">
+      <div style="font-size:13px;font-weight:600;color:#185FA5;margin-bottom:6px;">총 주문</div>
+      <div style="font-size:32px;font-weight:700;color:#185FA5;line-height:1;">${tot.toLocaleString()}</div>
+      <div style="font-size:13px;color:#555;margin-top:6px;">출고번호 기준</div>
+    </div>
+    <div style="background:#FCEBEB;border-radius:10px;padding:14px 16px;border-left:4px solid #A32D2D;">
+      <div style="font-size:13px;font-weight:600;color:#A32D2D;margin-bottom:6px;">미작업</div>
+      <div style="font-size:32px;font-weight:700;color:#A32D2D;line-height:1;">${ud.toLocaleString()}</div>
+      <div style="font-size:13px;color:#555;margin-top:6px;">미할당 ${nw.toLocaleString()} · 상차 ${rd.toLocaleString()}</div>
+    </div>
+    <div style="background:#EAF3DE;border-radius:10px;padding:14px 16px;border-left:4px solid #3B6D11;">
+      <div style="font-size:13px;font-weight:600;color:#3B6D11;margin-bottom:6px;">배차 상태</div>
+      <div style="font-size:32px;font-weight:700;color:#3B6D11;line-height:1;">${dispEl}</div>
+      <div style="font-size:13px;color:#555;margin-top:6px;">${dispSub}</div>
+    </div>
+    <div style="background:#f0f4f8;border-radius:10px;padding:14px 16px;border-left:4px solid #444;">
+      <div style="font-size:13px;font-weight:600;color:#333;margin-bottom:6px;">총 투입인원</div>
+      <div style="font-size:32px;font-weight:700;color:#1a1a18;line-height:1;">${tPpl}명</div>
+      <div style="font-size:13px;color:#555;margin-top:6px;">주간 ${dayPpl} · 석간 ${evePpl} · 야간 ${ngtPpl}</div>
+    </div>
+  </div>
+
+  <!-- 출고완료 / 생산성 / 인력 인시 3분할 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+    <!-- 출고완료 -->
+    <div style="background:#fff;border:1.5px solid #185FA5;border-radius:10px;overflow:hidden;">
+      <div style="background:#185FA5;color:#fff;padding:9px 16px;font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
+        <span>출고완료</span>
+        <span style="font-size:13px;font-weight:500;opacity:.9;">진척도 ${prog}%</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;">
+        <div style="padding:14px 16px;border-right:1px solid #e8eef5;">
+          <div style="font-size:13px;color:#555;margin-bottom:5px;">주간 <span style="color:#888;font-size:12px;">06~18시</span></div>
+          <div style="font-size:28px;font-weight:700;color:#185FA5;">${dQty}</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;">건</div>
+        </div>
+        <div style="padding:14px 16px;">
+          <div style="font-size:13px;color:#555;margin-bottom:5px;">야간 <span style="color:#888;font-size:12px;">18~03시</span></div>
+          <div style="font-size:28px;font-weight:700;color:#1D9E75;">${nQty}</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;">건</div>
+        </div>
+      </div>
+      <div style="padding:8px 16px 12px;border-top:1px solid #e8eef5;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:13px;font-weight:600;color:#333;">합계 ${dn.toLocaleString()}건</span>
+          <div style="flex:1;background:#e0e8f0;border-radius:4px;height:10px;"><div style="height:10px;border-radius:4px;width:${Math.min(prog,100)}%;background:${pBar};"></div></div>
+          <span style="font-size:15px;font-weight:700;color:${pCol};">${prog}%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 생산성 -->
+    <div style="background:#fff;border:1.5px solid #1D9E75;border-radius:10px;overflow:hidden;">
+      <div style="background:#1D9E75;color:#fff;padding:9px 16px;font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
+        <span>생산성</span>
+        <span style="font-size:13px;font-weight:500;opacity:.9;">전체 ${tUPH} UPH</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;">
+        <div style="padding:14px 16px;border-right:1px solid #e8f5ee;">
+          <div style="font-size:13px;color:#555;margin-bottom:5px;">주간 <span style="color:#888;font-size:12px;">06~18시</span></div>
+          <div style="font-size:28px;font-weight:700;color:#185FA5;">${dUPH}</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;">UPH</div>
+        </div>
+        <div style="padding:14px 16px;">
+          <div style="font-size:13px;color:#555;margin-bottom:5px;">야간 <span style="color:#888;font-size:12px;">18~03시</span></div>
+          <div style="font-size:28px;font-weight:700;color:#1D9E75;">${nUPH}</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;">UPH</div>
+        </div>
+      </div>
+      <div style="padding:8px 16px 12px;border-top:1px solid #e8f5ee;">
+        <span style="font-size:13px;color:#555;">주간인시 <strong style="color:#333;">${tDMH}</strong> · 야간인시 <strong style="color:#333;">${tNMH}</strong> · 합계 <strong style="color:#333;">${tDMH+tNMH}</strong> 인시</span>
+      </div>
+    </div>
+
+    <!-- 인력 주/석/야 -->
+    <div style="background:#fff;border:1.5px solid #555;border-radius:10px;overflow:hidden;">
+      <div style="background:#444;color:#fff;padding:9px 16px;font-size:14px;font-weight:700;">
+        투입인력 현황
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #eee;">
+        <div style="padding:12px 14px;border-right:1px solid #eee;text-align:center;">
+          <div style="font-size:12px;color:#555;margin-bottom:4px;">주간</div>
+          <div style="font-size:26px;font-weight:700;color:#185FA5;">${dayPpl}</div>
+          <div style="font-size:12px;color:#888;">명</div>
+        </div>
+        <div style="padding:12px 14px;border-right:1px solid #eee;text-align:center;">
+          <div style="font-size:12px;color:#555;margin-bottom:4px;">석간</div>
+          <div style="font-size:26px;font-weight:700;color:#BA7517;">${evePpl}</div>
+          <div style="font-size:12px;color:#888;">명</div>
+        </div>
+        <div style="padding:12px 14px;text-align:center;">
+          <div style="font-size:12px;color:#555;margin-bottom:4px;">야간</div>
+          <div style="font-size:26px;font-weight:700;color:#1D9E75;">${ngtPpl}</div>
+          <div style="font-size:12px;color:#888;">명</div>
+        </div>
+      </div>
+      <div style="padding:8px 16px 12px;">
+        <span style="font-size:13px;color:#555;">총 <strong style="color:#333;font-size:15px;">${tPpl}명</strong> 투입 · 합계 인시 <strong style="color:#333;">${tDMH+tNMH}</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 배송유형별 / 주문분류별 / 층별 WMS 테이블 -->
+  ${buildCapTable('(요약) 배송유형별 출고 현황','#185FA5',
+    DELIVERY_ORDER.filter(k=>dMap[k]&&dMap[k].tot>0).map(k=>({label:k,v:dMap[k]})),
+    totStat,'배송유형'
+  )}
+  ${buildCapTable('(합계) 출고 현황 (주문분류기준)','#3B6D11',
+    ORDER_TYPES.filter(k=>oMap[k]&&oMap[k].tot>0).map(k=>({label:k,v:oMap[k]})),
+    totStat,'구분'
+  )}
+  ${buildFloorCapTable(rows,totStat)}
+
+  <!-- 차트 -->
+  <div style="background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:10px;overflow:hidden;">
+    <div style="background:#185FA5;color:#fff;padding:7px 14px;font-size:13px;font-weight:500;display:flex;justify-content:space-between;align-items:center;">
+      <span>시간대별 인입 / 처리량 / 누적처리율</span>
+      <span style="display:flex;gap:12px;font-size:11px;">
+        <span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:2px;background:#378ADD;display:inline-block;"></span>주문 인입</span>
+        <span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:2px;background:#1D9E75;display:inline-block;"></span>처리량</span>
+        <span style="display:flex;align-items:center;gap:3px;"><span style="width:12px;height:2px;background:#BA7517;display:inline-block;margin-bottom:1px;"></span>누적처리율</span>
+      </span>
+    </div>
+    <div style="padding:10px;"><div style="position:relative;height:180px;"><canvas id="capChartEl" role="img" aria-label="캡처용 시간대별 차트">-</canvas></div></div>
+  </div>
+  <div style="text-align:right;margin-top:6px;padding-right:4px;">
+    <span style="font-size:11px;color:rgba(100,100,100,0.4);letter-spacing:0.3px;">여주B2C센터 · 최용준 · ${dateStr}</span>
+  </div>`;
+
+  // 차트 렌더
+  const existing=Chart.getChart('capChartEl');if(existing)existing.destroy();
+  let co2=0,cd2=0;
+  const rD2=oData.map((o,i)=>{co2+=o;cd2+=dData[i];return co2>0?Math.round(cd2/co2*100):0;});
+  const lp2={id:'lp2',afterDatasetsDraw(chart){const ctx=chart.ctx;[0,1].forEach(di=>{const meta=chart.getDatasetMeta(di);meta.data.forEach((bar,i)=>{const v=chart.data.datasets[di].data[i];if(!v||v===0)return;ctx.save();ctx.font='bold 9px -apple-system,sans-serif';ctx.fillStyle=di===0?'#0C447C':'#085041';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(v.toLocaleString(),bar.x,bar.y-1);ctx.restore();});});}};
+  new Chart(document.getElementById('capChartEl'),{
+    plugins:[lp2],
+    data:{labels:chartLabels,datasets:[
+      {type:'bar',label:'주문 인입',data:oData,backgroundColor:'rgba(55,138,221,0.75)',borderRadius:2,yAxisID:'y'},
+      {type:'bar',label:'처리량',data:dData,backgroundColor:'rgba(29,158,117,0.75)',borderRadius:2,yAxisID:'y'},
+      {type:'line',label:'누적처리율',data:rD2,borderColor:'#BA7517',borderWidth:1.5,pointBackgroundColor:'#BA7517',pointRadius:3,tension:0.3,fill:false,yAxisID:'y2',order:10}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{if(ctx.dataset.label==='누적처리율')return' 누적처리율: '+ctx.parsed.y+'%';return' '+ctx.dataset.label+': '+ctx.parsed.y.toLocaleString()+'건';}}}},
+      scales:{x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11},maxRotation:0,autoSkip:false}},y:{position:'left',grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11},callback:v=>v>=1000?(v/1000).toFixed(1)+'k':v}},y2:{position:'right',min:0,max:100,grid:{drawOnChartArea:false},ticks:{font:{size:11},color:'#BA7517',callback:v=>v+'%'}}}}
+  });
 }
 function showToast(msg){const t=document.getElementById('cap-toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2500);}
 function switchDtab(t){document.getElementById('dtab-basic').classList.toggle('on',t==='basic');document.getElementById('dtab-cbm').classList.toggle('on',t==='cbm');document.getElementById('dsec-basic').style.display=t==='basic'?'block':'none';document.getElementById('dsec-cbm').style.display=t==='cbm'?'block':'none';if(t==='cbm')calcCBM();}
