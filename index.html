@@ -131,20 +131,103 @@ input,select{font-size:12px;padding:3px 6px;height:26px;border:0.5px solid var(-
 
 <!-- ===== 요약 ===== -->
 <div id="sec-summary" class="sec on">
-  <div class="g6 mb">
-    <div class="mc"><div class="lb">총 주문</div><div class="vl" id="s-total">-</div><div class="sb">출고번호 기준</div></div>
-    <div class="mc"><div class="lb">미작업</div><div class="vl" id="s-undone">-</div><div class="sb" id="s-undone-sub">-</div></div>
-    <div class="mc"><div class="lb">출고완료</div><div class="vl" id="s-done">-</div><div class="sb" id="s-rate">진척도 -</div></div>
-    <div class="mc"><div class="lb">배차 상태</div><div class="vl" id="s-dispatch">-</div><div class="sb" id="s-dispatch-sub">-</div></div>
-    <div class="mc"><div class="lb">생산성</div><div class="vl" id="s-uph">-</div><div class="sb">처리량 ÷ 인시</div></div>
-    <div class="mc"><div class="lb">최근 업로드</div><div class="vl" id="s-snap-time" style="font-size:15px;">-</div><div class="sb" id="s-snap-cnt">0회</div></div>
+
+  <!-- KPI 4개 -->
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px;">
+    <div style="background:#EBF3FF;border-radius:10px;padding:14px 16px;border-left:4px solid #185FA5;">
+      <div style="font-size:13px;font-weight:600;color:#185FA5;margin-bottom:6px;">총 주문</div>
+      <div style="font-size:30px;font-weight:700;color:#185FA5;line-height:1;" id="s-total">-</div>
+      <div style="font-size:12px;color:#555;margin-top:6px;">출고번호 기준</div>
+    </div>
+    <div style="background:#FCEBEB;border-radius:10px;padding:14px 16px;border-left:4px solid #A32D2D;">
+      <div style="font-size:13px;font-weight:600;color:#A32D2D;margin-bottom:6px;">미작업</div>
+      <div style="font-size:30px;font-weight:700;color:#A32D2D;line-height:1;" id="s-undone">-</div>
+      <div style="font-size:12px;color:#555;margin-top:6px;" id="s-undone-sub">-</div>
+    </div>
+    <div style="background:#EAF3DE;border-radius:10px;padding:14px 16px;border-left:4px solid #3B6D11;">
+      <div style="font-size:13px;font-weight:600;color:#3B6D11;margin-bottom:6px;">배차 상태</div>
+      <div style="font-size:30px;font-weight:700;color:#3B6D11;line-height:1;" id="s-dispatch">-</div>
+      <div style="font-size:12px;color:#555;margin-top:6px;" id="s-dispatch-sub">-</div>
+    </div>
+    <div style="background:#f0f4f8;border-radius:10px;padding:14px 16px;border-left:4px solid #444;">
+      <div style="font-size:13px;font-weight:600;color:#333;margin-bottom:6px;">총 투입인원</div>
+      <div style="font-size:30px;font-weight:700;color:#1a1a18;line-height:1;" id="s-ppl">-</div>
+      <div style="font-size:12px;color:#555;margin-top:6px;" id="s-ppl-sub">-</div>
+    </div>
+  </div>
+
+  <!-- 출고완료 / 생산성 / 인력 3분할 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
+    <div style="background:#fff;border:1.5px solid #185FA5;border-radius:10px;overflow:hidden;">
+      <div style="background:#185FA5;color:#fff;padding:9px 16px;font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
+        <span>출고완료</span><span style="font-size:13px;font-weight:500;opacity:.9;" id="s-rate">진척도 -</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;">
+        <div style="padding:14px 16px;border-right:1px solid #e8eef5;">
+          <div style="font-size:26px;font-weight:700;color:#185FA5;" id="s-day-qty">-</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;">주간 (06~18시)</div>
+        </div>
+        <div style="padding:14px 16px;">
+          <div style="font-size:26px;font-weight:700;color:#1D9E75;" id="s-ngt-qty">-</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;">야간 (18~06시)</div>
+        </div>
+      </div>
+      <div style="padding:8px 16px 12px;border-top:1px solid #e8eef5;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:13px;font-weight:600;color:#333;" id="s-done-total">합계 -건</span>
+          <div style="flex:1;background:#e0e8f0;border-radius:4px;height:10px;"><div id="s-prog-bar" style="height:10px;border-radius:4px;width:0%;background:#E24B4A;transition:width .4s;"></div></div>
+          <span style="font-size:15px;font-weight:700;" id="s-prog-pct">-</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#fff;border:1.5px solid #1D9E75;border-radius:10px;overflow:hidden;">
+      <div style="background:#1D9E75;color:#fff;padding:9px 16px;font-size:14px;font-weight:700;">생산성</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;">
+        <div style="padding:14px 16px;border-right:1px solid #e8f5ee;">
+          <div style="font-size:14px;font-weight:500;color:#555;margin-bottom:4px;">주간 (06~18시)</div>
+          <div style="font-size:30px;font-weight:800;color:#185FA5;line-height:1;" id="s-day-uph">-</div>
+        </div>
+        <div style="padding:14px 16px;">
+          <div style="font-size:14px;font-weight:500;color:#555;margin-bottom:4px;">야간 (18~06시)</div>
+          <div style="font-size:30px;font-weight:800;color:#1D9E75;line-height:1;" id="s-ngt-uph">-</div>
+        </div>
+      </div>
+      <div style="padding:8px 16px 12px;border-top:1px solid #e8f5ee;">
+        <span style="font-size:13px;color:#555;">전체 생산성 <strong style="color:#1D9E75;font-size:15px;" id="s-uph">-</strong></span>
+      </div>
+    </div>
+
+    <div style="background:#fff;border:1.5px solid #555;border-radius:10px;overflow:hidden;">
+      <div style="background:#444;color:#fff;padding:9px 16px;font-size:14px;font-weight:700;">투입인력 현황</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #eee;">
+        <div style="padding:12px 10px;border-right:1px solid #eee;text-align:center;">
+          <div style="font-size:12px;color:#555;margin-bottom:4px;">주간</div>
+          <div style="font-size:24px;font-weight:700;color:#185FA5;" id="s-day-ppl">-</div>
+          <div style="font-size:11px;color:#888;">명</div>
+        </div>
+        <div style="padding:12px 10px;border-right:1px solid #eee;text-align:center;">
+          <div style="font-size:12px;color:#555;margin-bottom:4px;">석간</div>
+          <div style="font-size:24px;font-weight:700;color:#BA7517;" id="s-eve-ppl">-</div>
+          <div style="font-size:11px;color:#888;">명</div>
+        </div>
+        <div style="padding:12px 10px;text-align:center;">
+          <div style="font-size:12px;color:#555;margin-bottom:4px;">야간</div>
+          <div style="font-size:24px;font-weight:700;color:#1D9E75;" id="s-ngt-ppl">-</div>
+          <div style="font-size:11px;color:#888;">명</div>
+        </div>
+      </div>
+      <div style="padding:8px 16px 12px;">
+        <span style="font-size:13px;color:#555;">총 <strong style="color:#333;font-size:15px;" id="s-snap-time">-</strong> · <span id="s-snap-cnt" style="color:#888;">0회</span></span>
+      </div>
+    </div>
   </div>
 
   <!-- 통합 차트 -->
   <div class="ss mb">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
       <span class="sst" style="border:none;margin:0;padding:0;">시간대별 인입 / 처리량 / 누적처리율</span>
-      <div style="display:flex;gap:12px;font-size:11px;color:var(--color-text-secondary);">
+      <div style="display:flex;gap:12px;font-size:11px;color:var(--ts);">
         <span style="display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#378ADD;display:inline-block;"></span>주문 인입</span>
         <span style="display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#1D9E75;display:inline-block;"></span>처리량</span>
         <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:2px;background:#BA7517;display:inline-block;"></span>누적처리율</span>
@@ -153,34 +236,19 @@ input,select{font-size:12px;padding:3px 6px;height:26px;border:0.5px solid var(-
     <div class="cw" style="height:220px;"><canvas id="sumComboChart" role="img" aria-label="시간대별 주문 인입과 처리량 막대, 누적처리율 꺾은선 복합차트">-</canvas></div>
   </div>
 
-  <!-- 인력 요약 + 배차 요약 -->
-  <div class="g2 mb">
-    <div class="ss"><div class="sst">인력 &amp; 생산성 요약</div><div id="sum-labor"><div class="ec" style="padding:.5rem;">인력탭에서 인원을 입력하세요</div></div></div>
-    <div class="ss"><div class="sst">배차 현황 요약</div><div id="sum-dispatch"><div class="ec" style="padding:.5rem;">배차 판단 탭에서 입력하세요</div></div></div>
-  </div>
+  <!-- 배송유형/주문분류/층별 WMS 테이블 -->
+  <div id="sum-wms-tables"></div>
 
-  <div class="sum-sec">
-    <div class="sum-hdr"><span>배송유형별 현황</span><span id="sum-delivery-ttl" style="font-size:11px;opacity:.8;"></span></div>
-    <div class="tb" style="margin:0;border:none;border-radius:0;">
-      <table><thead><tr><th style="text-align:left;min-width:130px;">배송유형</th><th>총합계</th><th>미할당</th><th>할당완료</th><th>피킹완료</th><th>상차대기</th><th>미작업</th><th>출고완료</th><th style="min-width:160px;">진척도</th></tr></thead>
-      <tbody id="sum-tbody-delivery"><tr><td colspan="9" class="ec">RAW 업로드하세요</td></tr></tbody></table>
-    </div>
-  </div>
-
-  <div class="sum-sec">
-    <div class="sum-hdr"><span>주문분류별 현황</span><span id="sum-order-ttl" style="font-size:11px;opacity:.8;"></span></div>
-    <div class="tb" style="margin:0;border:none;border-radius:0;">
-      <table><thead><tr><th style="text-align:left;min-width:110px;">주문분류</th><th>총합계</th><th>미할당</th><th>할당완료</th><th>피킹완료</th><th>상차대기</th><th>미작업</th><th>출고완료</th><th style="min-width:160px;">진척도</th></tr></thead>
-      <tbody id="sum-tbody-order"><tr><td colspan="9" class="ec">RAW 업로드하세요</td></tr></tbody></table>
-    </div>
-  </div>
-
-  <div class="sum-sec">
-    <div class="sum-hdr"><span>층별 출고현황</span><span id="sum-floor-ttl" style="font-size:11px;opacity:.8;"></span></div>
-    <div class="tb" style="margin:0;border:none;border-radius:0;">
-      <table><thead><tr><th style="text-align:left;width:50px;">층</th><th style="text-align:left;min-width:90px;">구분</th><th>총합계</th><th>미할당</th><th>할당완료</th><th>피킹완료</th><th>상차대기</th><th>미작업</th><th>출고완료</th><th style="min-width:160px;">진척도</th></tr></thead>
-      <tbody id="sum-tbody-floor"><tr><td colspan="10" class="ec">층 설정 및 RAW 업로드하세요</td></tr></tbody></table>
-    </div>
+  <!-- 기존 테이블 (숨김, 데이터 유지용) -->
+  <div style="display:none;">
+    <div id="sum-labor"></div>
+    <div id="sum-dispatch"></div>
+    <tbody id="sum-tbody-delivery"></tbody>
+    <tbody id="sum-tbody-order"></tbody>
+    <tbody id="sum-tbody-floor"></tbody>
+    <span id="sum-delivery-ttl"></span>
+    <span id="sum-order-ttl"></span>
+    <span id="sum-floor-ttl"></span>
   </div>
 </div>
 
@@ -1071,19 +1139,79 @@ function renderSummary(rows){
   let tot=rows.length,nw=0,al=0,pk=0,rd=0,dn=0;
   rows.forEach(r=>{const s=statusOf(r);if(s==='new')nw++;else if(s==='alloc')al++;else if(s==='pick')pk++;else if(s==='ready')rd++;else dn++;});
   const ud=nw+al+pk+rd;
+  const prog=Math.round(dn/tot*100);
+  const pBar=prog>=80?'#639922':prog>=40?'#BA7517':'#E24B4A';
+  const pCol=prog>=80?'#3B6D11':prog>=40?'#854F0B':'#A32D2D';
+
+  // KPI
   document.getElementById('s-total').textContent=tot.toLocaleString();
   document.getElementById('s-undone').textContent=ud.toLocaleString();
-  document.getElementById('s-undone-sub').textContent='미할당 '+nw+' / 상차 '+rd;
-  document.getElementById('s-done').textContent=dn.toLocaleString();
-  document.getElementById('s-rate').textContent='진척도 '+Math.round(dn/tot*100)+'%';
+  document.getElementById('s-undone-sub').textContent='미할당 '+nw.toLocaleString()+' · 상차 '+rd.toLocaleString();
+
+  // 출고완료 카드
+  const dQ=parseInt(document.getElementById('lr-day-qty')?.textContent)||0;
+  const nQ=parseInt(document.getElementById('lr-ngt-qty')?.textContent)||0;
+  const dUPH=document.getElementById('lr-day-uph')?.textContent||'-';
+  const nUPH=document.getElementById('lr-ngt-uph')?.textContent||'-';
+  const tUPH=document.getElementById('lr-tot-uph')?.textContent||'-';
+  const dayPpl=parseInt(document.getElementById('l-day-ppl')?.value)||0;
+  const evePpl=parseInt(document.getElementById('l-eve-ppl')?.value)||0;
+  const ngtPpl=parseInt(document.getElementById('l-ngt-ppl')?.value)||0;
+
+  const sdq=document.getElementById('s-day-qty');if(sdq)sdq.textContent=dQ>0?dQ.toLocaleString():'-';
+  const snq=document.getElementById('s-ngt-qty');if(snq)snq.textContent=nQ>0?nQ.toLocaleString():'-';
+  const sdt=document.getElementById('s-done-total');if(sdt)sdt.textContent='합계 '+dn.toLocaleString()+'건';
+  const spb=document.getElementById('s-prog-bar');if(spb){spb.style.width=Math.min(prog,100)+'%';spb.style.background=pBar;}
+  const spp=document.getElementById('s-prog-pct');if(spp){spp.textContent=prog+'%';spp.style.color=pCol;}
+  const srate=document.getElementById('s-rate');if(srate)srate.textContent='진척도 '+prog+'%';
+
+  // 생산성 카드
+  const sdu=document.getElementById('s-day-uph');if(sdu)sdu.textContent=dUPH;
+  const snu=document.getElementById('s-ngt-uph');if(snu)snu.textContent=nUPH;
+  document.getElementById('s-uph').textContent=tUPH;
+
+  // 인력 카드
+  const sdp=document.getElementById('s-day-ppl');if(sdp)sdp.textContent=dayPpl||'-';
+  const sep=document.getElementById('s-eve-ppl');if(sep)sep.textContent=evePpl||'-';
+  const snp=document.getElementById('s-ngt-ppl');if(snp)snp.textContent=ngtPpl||'-';
+  const sp=document.getElementById('s-ppl');if(sp)sp.textContent=(dayPpl+evePpl+ngtPpl)+'명';
+  const sps=document.getElementById('s-ppl-sub');if(sps)sps.textContent='주간 '+dayPpl+' · 석간 '+evePpl+' · 야간 '+ngtPpl;
+
+  // WMS 테이블
   const dMap={},oMap={};
   rows.forEach(r=>{const d=normalizeDelivery(r['배송유형']),o=normalizeOrder(r['주문분류']),s=statusOf(r);if(d){if(!dMap[d])dMap[d]=mkStat();addStat(dMap[d],s);}if(o){if(!oMap[o])oMap[o]=mkStat();addStat(oMap[o],s);}});
-  document.getElementById('sum-tbody-delivery').innerHTML=buildFullRows(dMap,DELIVERY_ORDER,9);
-  document.getElementById('sum-delivery-ttl').textContent='총 '+tot.toLocaleString()+'건';
-  document.getElementById('sum-tbody-order').innerHTML=buildFullRows(oMap,ORDER_TYPES,9);
-  document.getElementById('sum-order-ttl').textContent='진척도 '+Math.round(dn/tot*100)+'%';
-  document.getElementById('sum-tbody-floor').innerHTML=buildFloorRows(rows);
-  document.getElementById('sum-floor-ttl').textContent='층별 세부 현황';
+  const totStat=mkStat();totStat.nw=nw;totStat.al=al;totStat.pk=pk;totStat.rd=rd;totStat.dn=dn;totStat.tot=tot;
+
+  const wmsEl=document.getElementById('sum-wms-tables');
+  if(wmsEl){
+    const TH='padding:7px 10px;text-align:center;font-size:12px;font-weight:600;background:#e8eef5;color:#333;border-bottom:2px solid #c8d4e0;border-right:0.5px solid #d8e2ea;white-space:nowrap;';
+    const THL='padding:7px 10px;text-align:left;font-size:12px;font-weight:600;background:#e8eef5;color:#333;border-bottom:2px solid #c8d4e0;border-right:0.5px solid #d8e2ea;white-space:nowrap;';
+    const TD='padding:6px 10px;text-align:center;font-size:12px;font-weight:500;color:#111;border-bottom:0.5px solid #e8eaed;border-right:0.5px solid #e8eaed;';
+    const TDL='padding:6px 10px;text-align:left;font-size:12px;font-weight:500;color:#111;border-bottom:0.5px solid #e8eaed;border-right:0.5px solid #e8eaed;';
+    function tdU(v,bg=''){return`<td style="${TD}${bg}background:#FCEBEB;color:#A32D2D;font-weight:700;font-size:13px;">${v.toLocaleString()}</td>`;}
+    function tdD(v,bg=''){return`<td style="${TD}${bg}color:#1D6B2F;font-weight:700;font-size:13px;">${v>0?v.toLocaleString():'-'}</td>`;}
+    function tdP(p,bg=''){const col=p>=80?'#3B9E22':p>=40?'#BA7517':'#E24B4A';const tc=p>=80?'#1D6B2F':p>=40?'#7A4500':'#A32D2D';return`<td style="${TD}${bg}min-width:110px;"><div style="display:flex;align-items:center;gap:5px;"><div style="flex:1;background:#d8d8d8;border-radius:3px;height:8px;"><div style="height:8px;border-radius:3px;width:${Math.min(p,100)}%;background:${col};"></div></div><span style="font-size:12px;font-weight:700;color:${tc};min-width:32px;">${p}%</span></div></td>`;}
+    function wmsRow(label,v,isTot){const p=v.tot>0?Math.round(v.dn/v.tot*100):0;const ud2=undone(v);const bg=isTot?'background:#EBF3FF;':'';const fs=isTot?'font-size:13px;font-weight:700;':'';return`<tr><td style="${TDL}${bg}${fs}">${label}</td><td style="${TD}${bg}${fs}">${v.tot.toLocaleString()}</td><td style="${TD}${bg}">${v.nw>0?v.nw.toLocaleString():'-'}</td><td style="${TD}${bg}">${v.al>0?v.al.toLocaleString():'-'}</td><td style="${TD}${bg}">${v.pk>0?v.pk.toLocaleString():'-'}</td><td style="${TD}${bg}">${v.rd>0?v.rd.toLocaleString():'-'}</td>${tdU(ud2,bg)}${tdD(v.dn,bg)}${tdP(p,bg)}</tr>`;}
+    function wmsTable(title,color,rows2,col1){return`<div style="margin-bottom:12px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;"><div style="width:4px;height:16px;background:${color};border-radius:2px;"></div><span style="font-size:13px;font-weight:600;color:#1a1a18;">${title}</span><span style="font-size:11px;color:#aaa;">(단위: 건)</span></div><table style="width:100%;border-collapse:collapse;border:0.5px solid #e0e6ed;"><thead><tr><th style="${THL}">${col1}</th><th style="${TH}">총합계</th><th style="${TH}">미할당</th><th style="${TH}">할당완료</th><th style="${TH}">피킹완료</th><th style="${TH}">상차대기</th><th style="${TH}background:#FCEBEB;color:#A32D2D;">미작업</th><th style="${TH}background:#EAF3DE;color:#3B6D11;">출고완료</th><th style="${TH}">진척도</th></tr></thead><tbody>${rows2.map(r=>wmsRow(r.label,r.v,false)).join('')}${wmsRow('계',totStat,true)}</tbody></table></div>`;}
+
+    // 층별 테이블
+    const fd={};FLOORS.forEach(f=>{fd[f]={};ORDER_TYPES.forEach(o=>fd[f][o]=mkStat());fd[f]._tot=mkStat();});
+    rows.forEach(r=>{const id=(r['고객 ID']||r['고객ID']||'').toString().trim();const f=floorOf(id);if(!fd[f])return;const o=normalizeOrder(r['주문분류']),s=statusOf(r);addStat(fd[f]._tot,s);if(o&&fd[f][o])addStat(fd[f][o],s);});
+    let floorRows='';
+    FLOORS.forEach((f,fi)=>{const ft=fd[f]._tot;if(!ft.tot)return;const activeTypes=ORDER_TYPES.filter(o=>fd[f][o]&&fd[f][o].tot>0);const flBg=fi%2===0?'':'background:#fafafa;';let first=true;
+      activeTypes.forEach(o=>{const v=fd[f][o];if(!v.tot)return;const p=v.tot>0?Math.round(v.dn/v.tot*100):0;const ud2=undone(v);
+        floorRows+=`<tr>${first?`<td style="${TDL}${flBg}font-weight:700;font-size:13px;vertical-align:middle;border-right:2px solid #c8d4e0;" rowspan="${activeTypes.length+1}">${f}</td>`:''}<td style="${TDL}${flBg}font-weight:500;">${o}</td><td style="${TD}${flBg}">${v.tot.toLocaleString()}</td><td style="${TD}${flBg}">${v.nw>0?v.nw.toLocaleString():'-'}</td><td style="${TD}${flBg}">${v.al>0?v.al.toLocaleString():'-'}</td><td style="${TD}${flBg}">${v.pk>0?v.pk.toLocaleString():'-'}</td><td style="${TD}${flBg}">${v.rd>0?v.rd.toLocaleString():'-'}</td>${tdU(ud2,flBg)}${tdD(v.dn,flBg)}${tdP(p,flBg)}</tr>`;first=false;});
+      const fp=ft.tot>0?Math.round(ft.dn/ft.tot*100):0;const fud=undone(ft);
+      floorRows+=`<tr><td style="${TDL}background:#e8eef5;font-weight:700;font-size:13px;">${f} 소계</td><td style="${TD}background:#e8eef5;font-weight:700;">${ft.tot.toLocaleString()}</td><td style="${TD}background:#e8eef5;">${ft.nw>0?ft.nw.toLocaleString():'-'}</td><td style="${TD}background:#e8eef5;">${ft.al>0?ft.al.toLocaleString():'-'}</td><td style="${TD}background:#e8eef5;">${ft.pk>0?ft.pk.toLocaleString():'-'}</td><td style="${TD}background:#e8eef5;">${ft.rd>0?ft.rd.toLocaleString():'-'}</td>${tdU(fud,'background:#e8eef5;')}${tdD(ft.dn,'background:#e8eef5;')}${tdP(fp,'background:#e8eef5;')}</tr>`;
+    });
+    const tp=tot>0?Math.round(dn/tot*100):0;
+    floorRows+=`<tr><td style="${TDL}background:#EBF3FF;font-weight:700;font-size:13px;" colspan="2">총계</td><td style="${TD}background:#EBF3FF;font-weight:700;">${tot.toLocaleString()}</td><td style="${TD}background:#EBF3FF;">${nw>0?nw.toLocaleString():'-'}</td><td style="${TD}background:#EBF3FF;">${al>0?al.toLocaleString():'-'}</td><td style="${TD}background:#EBF3FF;">${pk>0?pk.toLocaleString():'-'}</td><td style="${TD}background:#EBF3FF;">${rd>0?rd.toLocaleString():'-'}</td>${tdU(ud,'background:#EBF3FF;')}${tdD(dn,'background:#EBF3FF;')}${tdP(tp,'background:#EBF3FF;')}</tr>`;
+
+    wmsEl.innerHTML=
+      wmsTable('(요약) 배송유형별 출고 현황','#185FA5',DELIVERY_ORDER.filter(k=>dMap[k]&&dMap[k].tot>0).map(k=>({label:k,v:dMap[k]})),'배송유형')+
+      wmsTable('(합계) 출고 현황 (주문분류기준)','#3B6D11',ORDER_TYPES.filter(k=>oMap[k]&&oMap[k].tot>0).map(k=>({label:k,v:oMap[k]})),'구분')+
+      `<div style="margin-bottom:12px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;"><div style="width:4px;height:16px;background:#BA7517;border-radius:2px;"></div><span style="font-size:13px;font-weight:600;color:#1a1a18;">(합계) 층별 출고 현황</span><span style="font-size:11px;color:#aaa;">(단위: 건)</span></div><table style="width:100%;border-collapse:collapse;border:0.5px solid #e0e6ed;"><thead><tr><th style="${THL}">작업 층</th><th style="${THL}">구분</th><th style="${TH}">총합계</th><th style="${TH}">미할당</th><th style="${TH}">할당완료</th><th style="${TH}">피킹완료</th><th style="${TH}">상차대기</th><th style="${TH}background:#FCEBEB;color:#A32D2D;">미작업</th><th style="${TH}background:#EAF3DE;color:#3B6D11;">출고완료</th><th style="${TH}">진척도</th></tr></thead><tbody>${floorRows}</tbody></table></div>`;
+  }
 }
 
 function buildComboChart(canvasId,labels,oData,dData){
