@@ -256,10 +256,18 @@ input,select{font-size:12px;padding:3px 6px;height:26px;border:0.5px solid var(-
       <div class="rb"><div class="rl">추가 필요</div><div class="rv" id="d-add">-</div><div class="rs" id="d-add-sub">-</div></div>
     </div>
     <div class="gw">
-      <div class="grw"><span>예상 물량 기준</span><span id="d-gap-label">-</span></div>
+      <div class="grw"><span>예상 물량 기준 (전일 예측)</span><span id="d-gap-label">-</span></div>
       <div class="gbg"><div class="gfl" id="gauge-expected" style="width:0%;background:#639922;"></div></div>
       <div class="grw"><span>현재 인입량 기준</span><span id="d-cur-label">-</span></div>
-      <div class="gbg"><div class="gfl" id="gauge-current" style="width:0%;background:#639922;"></div></div>
+      <div class="gbg" style="position:relative;">
+        <div class="gfl" id="gauge-current" style="width:0%;background:#639922;"></div>
+        <!-- 예상 최종 물량 반투명 오버레이 -->
+        <div id="gauge-forecast" style="position:absolute;top:0;left:0;height:14px;border-radius:4px;background:rgba(100,100,100,0.15);transition:width .4s;width:0%;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+        <span style="font-size:11px;color:var(--tt);">예상 최종 인입 <span id="d-forecast-val" style="font-weight:500;color:var(--ts);">-</span>건 <span style="font-size:10px;">(현재 추이 기반)</span></span>
+        <span id="d-forecast-label" style="font-size:11px;color:var(--tt);">-</span>
+      </div>
       <div class="vdt" id="d-verdict">-</div>
     </div>
   </div>
@@ -1234,6 +1242,33 @@ function calcBasic(){
   document.getElementById('gauge-current').style.cssText='width:'+Math.min(pC,100)+'%;background:'+(pC>=100?'#E24B4A':pC>=80?'#BA7517':'#639922')+';';
   document.getElementById('d-gap-label').textContent=gE>=0?'여유 '+gE.toLocaleString()+'건':'부족 '+Math.abs(gE).toLocaleString()+'건';
   document.getElementById('d-cur-label').textContent=gC>=0?'여유 '+gC.toLocaleString()+'건':'부족 '+Math.abs(gC).toLocaleString()+'건';
+
+  // 예상 최종 인입 계산 (시간별 추이 기반)
+  let forecast=0;
+  if(hourlyOrderData){
+    const now=new Date(),curH=now.getHours();
+    const hs=hourlyOrderData.hourlySum;
+    const validH=Object.entries(hs).filter(([h,v])=>parseInt(h)>=9&&parseInt(h)<curH&&v>0);
+    if(validH.length>0){
+      const avg=Math.round(validH.reduce((a,[,v])=>a+v,0)/validH.length);
+      const remainH=Math.max(0,24-curH);
+      forecast=cur+Math.round(avg*remainH);
+    }
+  }
+  if(forecast>0){
+    const pF=totalCap?Math.min(Math.round(forecast/totalCap*100),130):0;
+    const gF=totalCap-forecast;
+    const fcol=pF>=100?'#E24B4A':pF>=80?'#BA7517':'#639922';
+    document.getElementById('gauge-forecast').style.width=Math.min(pF,100)+'%';
+    document.getElementById('d-forecast-val').textContent=forecast.toLocaleString();
+    document.getElementById('d-forecast-label').textContent=gF>=0?'→ 여유 '+gF.toLocaleString()+'건':'→ 부족 '+Math.abs(gF).toLocaleString()+'건';
+    document.getElementById('d-forecast-label').style.color=gF>=0?'#3B6D11':'#A32D2D';
+  } else {
+    document.getElementById('gauge-forecast').style.width='0%';
+    document.getElementById('d-forecast-val').textContent='-';
+    document.getElementById('d-forecast-label').textContent='시간별 주문실적 업로드 필요';
+  }
+
   const vt=gE<0?'추가 배차 필요 — '+add+'대 추가 요청 권장':pE>=80?'주의 — 예상 물량이 용량의 '+pE+'%':'여유 — 현재 차량으로 처리 가능';
   document.getElementById('d-verdict').textContent=vt;document.getElementById('d-verdict').style.color=gE<0?'#A32D2D':pE>=80?'#854F0B':'#3B6D11';
   document.getElementById('s-dispatch').textContent=add>0?'+'+add+'대 필요':'여유';document.getElementById('s-dispatch-sub').textContent='용량 '+totalCap.toLocaleString()+' / 예상 '+exp.toLocaleString();
