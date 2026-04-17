@@ -354,7 +354,7 @@ input,select{font-size:12px;padding:3px 6px;height:26px;border:0.5px solid var(-
     </div>
     <!-- 야간 -->
     <div class="ic">
-      <div class="ilb">야간 (18시~03시)</div>
+      <div class="ilb">야간 (18시~06시)</div>
       <div class="ir"><label>실투입인원</label><input type="number" id="l-ngt-ppl" value="36" oninput="calcLabor()"><span class="un">명</span></div>
       <div class="ir"><label>작업시간</label><input type="number" id="l-ngt-hrs" value="9" step="0.5" oninput="calcLabor()"><span class="un">h</span></div>
       <div class="isb">→ 야간 인시에 반영</div>
@@ -381,7 +381,7 @@ input,select{font-size:12px;padding:3px 6px;height:26px;border:0.5px solid var(-
   </div>
   <div class="st">인력 현황 및 생산성</div>
   <div class="tb"><table>
-    <thead><tr><th style="text-align:left;">구분</th><th>실투입인원</th><th>주간 인시 <span class="atag tday">06~18</span></th><th>야간 인시 <span class="atag tngt">18~03</span></th><th>합계 인시</th><th>처리량</th><th>생산성</th></tr></thead>
+    <thead><tr><th style="text-align:left;">구분</th><th>실투입인원</th><th>주간 인시 <span class="atag tday">06~18</span></th><th>야간 인시 <span class="atag tngt">18~06</span></th><th>합계 인시</th><th>처리량</th><th>생산성</th></tr></thead>
     <tbody>
       <tr><td class="tl">주간</td><td id="lr-day-ppl">-</td><td id="lr-day-dmh">-</td><td id="lr-day-nmh">-</td><td id="lr-day-mh">-</td><td id="lr-day-qty">-</td><td id="lr-day-uph">-</td></tr>
       <tr><td class="tl">석간</td><td id="lr-eve-ppl">-</td><td id="lr-eve-dmh">-</td><td id="lr-eve-nmh">-</td><td id="lr-eve-mh">-</td><td id="lr-eve-qty">-</td><td id="lr-eve-uph">-</td></tr>
@@ -850,14 +850,12 @@ function buildCapLayout(){
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;">
         <div style="padding:14px 16px;border-right:1px solid #e8eef5;">
-          <div style="font-size:13px;color:#555;margin-bottom:5px;">주간 <span style="color:#888;font-size:12px;">06~18시</span></div>
           <div style="font-size:28px;font-weight:700;color:#185FA5;">${dQty}</div>
-          <div style="font-size:12px;color:#888;margin-top:2px;">건</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;">주간 (06~18시)</div>
         </div>
         <div style="padding:14px 16px;">
-          <div style="font-size:13px;color:#555;margin-bottom:5px;">야간 <span style="color:#888;font-size:12px;">18~03시</span></div>
           <div style="font-size:28px;font-weight:700;color:#1D9E75;">${nQty}</div>
-          <div style="font-size:12px;color:#888;margin-top:2px;">건</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;">야간 (18~06시)</div>
         </div>
       </div>
       <div style="padding:8px 16px 12px;border-top:1px solid #e8eef5;">
@@ -871,24 +869,21 @@ function buildCapLayout(){
 
     <!-- 생산성 -->
     <div style="background:#fff;border:1.5px solid #1D9E75;border-radius:10px;overflow:hidden;">
-      <div style="background:#1D9E75;color:#fff;padding:9px 16px;font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
+      <div style="background:#1D9E75;color:#fff;padding:9px 16px;font-size:14px;font-weight:700;">
         <span>생산성</span>
-        <span style="font-size:13px;font-weight:500;opacity:.9;">전체 ${tUPH} UPH</span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;">
         <div style="padding:14px 16px;border-right:1px solid #e8f5ee;">
-          <div style="font-size:13px;color:#555;margin-bottom:5px;">주간 <span style="color:#888;font-size:12px;">06~18시</span></div>
-          <div style="font-size:28px;font-weight:700;color:#185FA5;">${dUPH}</div>
-          <div style="font-size:12px;color:#888;margin-top:2px;">UPH</div>
+          <div style="font-size:15px;font-weight:500;color:#555;margin-bottom:4px;">주간 (06~18시)</div>
+          <div style="font-size:32px;font-weight:800;color:#185FA5;line-height:1;">${dUPH}</div>
         </div>
         <div style="padding:14px 16px;">
-          <div style="font-size:13px;color:#555;margin-bottom:5px;">야간 <span style="color:#888;font-size:12px;">18~03시</span></div>
-          <div style="font-size:28px;font-weight:700;color:#1D9E75;">${nUPH}</div>
-          <div style="font-size:12px;color:#888;margin-top:2px;">UPH</div>
+          <div style="font-size:15px;font-weight:500;color:#555;margin-bottom:4px;">야간 (18~06시)</div>
+          <div style="font-size:32px;font-weight:800;color:#1D9E75;line-height:1;">${nUPH}</div>
         </div>
       </div>
       <div style="padding:8px 16px 12px;border-top:1px solid #e8f5ee;">
-        <span style="font-size:13px;color:#555;">주간인시 <strong style="color:#333;">${tDMH}</strong> · 야간인시 <strong style="color:#333;">${tNMH}</strong> · 합계 <strong style="color:#333;">${tDMH+tNMH}</strong> 인시</span>
+        <span style="font-size:13px;color:#555;">전체 생산성 <strong style="color:#1D9E75;font-size:15px;">${tUPH}</strong></span>
       </div>
     </div>
 
@@ -915,7 +910,7 @@ function buildCapLayout(){
         </div>
       </div>
       <div style="padding:8px 16px 12px;">
-        <span style="font-size:13px;color:#555;">총 <strong style="color:#333;font-size:15px;">${tPpl}명</strong> 투입 · 합계 인시 <strong style="color:#333;">${tDMH+tNMH}</strong></span>
+        <span style="font-size:13px;color:#555;">총 <strong style="color:#333;font-size:15px;">${tPpl}명</strong> 투입</span>
       </div>
     </div>
   </div>
@@ -1513,7 +1508,7 @@ function calcLabor(){
 
   const rows=snapshots.length?snapshots[snapshots.length-1].rows:[];
   function getQty(h1,h2){return rows.filter(r=>{if((r['출고상태']||'').toString()!=='출고완료')return false;const t=(r['출고시간']||r['확정시간']||'').toString();if(!t)return false;const h=parseInt(t.split(':')[0]);return h1<=h2?h>=h1&&h<h2:h>=h1||h<h2;}).length;}
-  const dQ=getQty(6,18),nQ=getQty(18,3),tQ=dQ+nQ;
+  const dQ=getQty(6,18),nQ=getQty(18,6),tQ=dQ+nQ;
   const dayMH=dayDMH+dayNMH;
   const dU=dayMH>0?(dQ/dayMH).toFixed(1):'-',nU=ngtNMH>0?(nQ/ngtNMH).toFixed(1):'-',tU=totalMH>0?(tQ/totalMH).toFixed(1):'-';
 
@@ -1540,7 +1535,7 @@ function renderUphGauge(){
   const d=window._uphData||{day:0,ngt:0,tot:0};
   const items=[
     {label:'주간',uph:d.day,sub:'06시~18시'},
-    {label:'야간',uph:d.ngt,sub:'18시~03시'},
+    {label:'야간',uph:d.ngt,sub:'18시~06시'},
     {label:'전체',uph:d.tot,sub:'합계'}
   ];
   function gc(pct){
