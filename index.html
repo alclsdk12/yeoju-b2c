@@ -264,28 +264,50 @@ input,select{font-size:12px;padding:3px 6px;height:26px;border:0.5px solid var(-
     </div>
   </div>
   <div id="dsec-cbm" style="display:none;">
-    <div class="g3 mb">
-      <div class="ic"><div class="ilb">TR 설정</div><div class="ir"><label>투입 댓수</label><input type="number" id="cbm-tr-cnt" value="4" oninput="calcCBM()"><span class="un">대</span></div><div class="ir"><label>1대 용량</label><input type="number" id="cbm-tr-vol" value="67" step="0.5" oninput="calcCBM()"><span class="un">CBM</span></div></div>
-      <div class="ic"><div class="ilb">11톤 설정</div><div class="ir"><label>투입 댓수</label><input type="number" id="cbm-11-cnt" value="4" oninput="calcCBM()"><span class="un">대</span></div><div class="ir"><label>1대 용량</label><input type="number" id="cbm-11-vol" value="48" step="0.5" oninput="calcCBM()"><span class="un">CBM</span></div></div>
-      <div class="ic"><div class="ilb">총 가용 CBM</div><div style="font-size:18px;font-weight:500;margin-top:4px;" id="cbm-total-cap">-</div><div style="font-size:11px;color:var(--tt);margin-top:2px;" id="cbm-total-sub">-</div></div>
-    </div>
-    <div class="g4 mb">
-      <div class="mc"><div class="lb">총 가용 CBM</div><div class="vl" id="cbm-s-cap">-</div><div class="sb">CBM</div></div>
-      <div class="mc"><div class="lb">출고완료 CBM</div><div class="vl" id="cbm-s-done">-</div><div class="sb">CBM</div></div>
-      <div class="mc"><div class="lb">잔여 CBM</div><div class="vl" id="cbm-s-remain">-</div><div class="sb">CBM</div></div>
-      <div class="mc"><div class="lb">전체 적재율</div><div class="vl" id="cbm-s-rate">-</div><div class="sb">출고완료 기준</div></div>
-    </div>
-    <div class="gw mb">
-      <div class="grw"><span>전체 CBM 적재율</span><span id="cbm-gauge-label">-</span></div>
-      <div class="gbg"><div class="gfl" id="cbm-gauge-fill" style="width:0%;background:#639922;"></div></div>
-      <div class="vdt" id="cbm-verdict">-</div>
-    </div>
+    <!-- 권역별 차량 세팅 -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <div class="st" style="margin:0;">차량별 출차 계획</div>
-      <div style="display:flex;gap:6px;"><button class="btn btnsm" onclick="addCar('TR')">+ TR</button><button class="btn btnsm" onclick="addCar('11톤')">+ 11톤</button></div>
+      <div class="st" style="margin:0;">권역별 차량 세팅</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btnsm" onclick="addRegionCar('곤지암')">+ 곤지암</button>
+        <button class="btn btnsm" onclick="addRegionCar('대전')">+ 대전</button>
+        <button class="btn btnsm" onclick="addRegionCar('이천')">+ 이천</button>
+      </div>
     </div>
-    <div id="car-list" style="margin-bottom:1rem;"></div>
-    <div class="tb"><table><thead><tr><th style="text-align:left;">차번</th><th>차종</th><th>출차시간</th><th>적재 CBM</th><th>용량</th><th>적재율</th><th>소비</th></tr></thead><tbody id="tbody-cars"><tr><td colspan="7" class="ec">차량을 추가하세요</td></tr></tbody></table></div>
+    <div id="region-car-list" style="margin-bottom:1rem;"></div>
+
+    <!-- 권역별 CBM 현황 -->
+    <div class="st">권역별 CBM 현황</div>
+    <div id="region-summary" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:1rem;"></div>
+
+    <!-- 차량별 상차 현황 테이블 -->
+    <div class="st">차량별 상차 현황</div>
+    <div class="tb"><table>
+      <thead><tr>
+        <th style="text-align:left;">권역</th>
+        <th style="text-align:left;">호차</th>
+        <th>차종</th>
+        <th>용량</th>
+        <th>현재 적재</th>
+        <th>적재율</th>
+        <th>상태</th>
+        <th>조작</th>
+      </tr></thead>
+      <tbody id="tbody-region-cars"><tr><td colspan="8" class="ec">차량을 추가하세요</td></tr></tbody>
+    </table></div>
+
+    <!-- 출하 이력 -->
+    <div class="st">출하 이력</div>
+    <div class="tb"><table>
+      <thead><tr>
+        <th style="text-align:left;">권역</th>
+        <th style="text-align:left;">호차</th>
+        <th>차종</th>
+        <th>출하 시간</th>
+        <th>적재 CBM</th>
+        <th>적재율</th>
+      </tr></thead>
+      <tbody id="tbody-dispatch-history"><tr><td colspan="6" class="ec">출하 이력 없음</td></tr></tbody>
+    </table></div>
   </div>
 </div>
 
@@ -1218,10 +1240,158 @@ function calcBasic(){
   document.getElementById('sum-dispatch').innerHTML='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--bd);font-size:12px;"><span>총 차량 용량</span><span style="font-weight:500;">'+totalCap.toLocaleString()+'건</span></div><div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--bd);font-size:12px;"><span>예상 물량</span><span style="font-weight:500;">'+exp.toLocaleString()+'건</span></div><div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--bd);font-size:12px;"><span>현재 인입량</span><span style="font-weight:500;">'+cur.toLocaleString()+'건</span></div><div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;"><span>판단</span><span style="font-weight:500;color:'+(gE<0?'#A32D2D':'#3B6D11')+';">'+(add>0?add+'대 추가 필요':'여유')+'</span></div>';
 }
 
-function addCar(type){const vol=type==='TR'?parseFloat(document.getElementById('cbm-tr-vol').value)||67:parseFloat(document.getElementById('cbm-11-vol').value)||48;carList.push({id:Date.now(),type,vol,leaveTime:''});renderCarList();calcCBM();}
-function removeCar(id){carList=carList.filter(c=>c.id!==id);renderCarList();calcCBM();}
-function renderCarList(){if(!carList.length){document.getElementById('car-list').innerHTML='<div style="font-size:12px;color:var(--tt);padding:6px 0;">차량을 추가하세요</div>';return;}document.getElementById('car-list').innerHTML=carList.map((c,i)=>'<div class="cr"><span style="font-size:12px;font-weight:500;width:45px;">'+(i+1)+'호차</span><span class="bx '+(c.type==='TR'?'bi':'bg')+'" style="width:38px;text-align:center;">'+c.type+'</span><span style="font-size:11px;color:var(--ts);">용량</span><input type="number" value="'+c.vol+'" step="0.5" style="width:55px;" onchange="carList['+i+'].vol=parseFloat(this.value)||0;calcCBM();"><span style="font-size:11px;color:var(--ts);">CBM&nbsp;출차</span><input type="time" value="'+c.leaveTime+'" style="width:88px;" onchange="carList['+i+'].leaveTime=this.value;calcCBM();"><button class="btndel" onclick="removeCar('+c.id+')">삭제</button></div>').join('');}
-function calcCBM(){const trCnt=parseInt(document.getElementById('cbm-tr-cnt').value)||0,trVol=parseFloat(document.getElementById('cbm-tr-vol').value)||67,elCnt=parseInt(document.getElementById('cbm-11-cnt').value)||0,elVol=parseFloat(document.getElementById('cbm-11-vol').value)||48,tc=parseFloat((trCnt*trVol+elCnt*elVol).toFixed(2));document.getElementById('cbm-total-cap').textContent=tc.toFixed(1)+' CBM';document.getElementById('cbm-total-sub').textContent='TR '+trCnt+'대('+trVol+'CBM) + 11톤 '+elCnt+'대('+elVol+'CBM)';document.getElementById('cbm-s-cap').textContent=tc.toFixed(1);const rows=snapshots.length?snapshots[snapshots.length-1].rows:[],dc=parseFloat(rows.filter(r=>statusOf(r)==='done').reduce((a,r)=>a+getRowCBM(r),0).toFixed(2)),rc=parseFloat((tc-dc).toFixed(2)),rate=tc>0?Math.round(dc/tc*100):0;document.getElementById('cbm-s-done').textContent=dc.toFixed(1);document.getElementById('cbm-s-remain').textContent=rc.toFixed(1);document.getElementById('cbm-s-rate').textContent=rate+'%';document.getElementById('cbm-gauge-fill').style.cssText='width:'+Math.min(rate,100)+'%;background:'+(rate>=95?'#E24B4A':rate>=75?'#BA7517':'#639922')+';';document.getElementById('cbm-gauge-label').textContent=dc.toFixed(1)+' / '+tc.toFixed(1)+' CBM';document.getElementById('cbm-verdict').textContent=rate>=95?'주의 — CBM 용량 거의 소진 ('+rate+'%)':'여유 — 잔여 '+rc.toFixed(1)+' CBM';document.getElementById('cbm-verdict').style.color=rate>=95?'#A32D2D':rate>=75?'#854F0B':'#3B6D11';if(!carList.length){document.getElementById('tbody-cars').innerHTML='<tr><td colspan="7" class="ec">차량을 추가하세요</td></tr>';return;}let cum=0;document.getElementById('tbody-cars').innerHTML=carList.map((c,i)=>{let cc=0;if(c.leaveTime){const[lh,lm]=c.leaveTime.split(':').map(Number),ad=parseFloat(rows.filter(r=>{if(statusOf(r)!=='done')return false;const t=(r['출고시간']||r['확정시간']||'').toString();if(!t)return false;const[rh,rm]=t.split(':').map(Number);return rh*60+rm<=lh*60+lm;}).reduce((a,r)=>a+getRowCBM(r),0).toFixed(2));cc=Math.max(0,Math.min(ad-cum,c.vol));cum+=cc;}const p=c.vol>0?Math.round(cc/c.vol*100):0;return'<tr><td class="tl">'+(i+1)+'호차</td><td><span class="bx '+(c.type==='TR'?'bi':'bg')+'">'+c.type+'</span></td><td>'+(c.leaveTime||'-')+'</td><td>'+cc.toFixed(2)+'</td><td>'+c.vol+'</td><td><span class="bx '+pctBadge(p)+'">'+p+'%</span><span class="pw"><span class="pb" style="width:'+Math.min(p,100)+'%;background:'+pctColor(p)+';"></span></span></td><td>'+(c.vol>0?(cc/c.vol).toFixed(2):'0.00')+'대분</td></tr>';}).join('');}
+// ===== 권역별 상차 관리 =====
+let regionCars=[];
+let dispatchHistory=[];
+const REGION_COLORS={곤지암:'#185FA5',대전:'#1D9E75',이천:'#BA7517'};
+const TR_VOL=67,TON_VOL=48;
+
+function getRegionCBM_total(rows){
+  return rows.filter(r=>{
+    const code=(r['권역코드']||r['권역 코드']||'').toString().trim();
+    return code&&code[0].toUpperCase()!=='J'&&statusOf(r)==='done';
+  }).reduce((a,r)=>a+getRowCBM(r),0);
+}
+
+function getRegionRatio(){
+  const regions=[...new Set(regionCars.map(c=>c.region))];
+  if(!regions.length)return{};
+  if(regions.length===1)return{[regions[0]]:1};
+  if(regions.includes('이천'))return{곤지암:0.5,대전:0.4,이천:0.1};
+  return{곤지암:0.6,대전:0.4};
+}
+
+function addRegionCar(region){
+  const idx=regionCars.filter(c=>c.region===region).length+1;
+  regionCars.push({id:Date.now(),region,type:'TR',vol:TR_VOL,status:'대기',loadedCBM:0,startTime:null,departTime:null,idx});
+  renderRegionCBM();
+}
+function removeRegionCar(id){regionCars=regionCars.filter(c=>c.id!==id);renderRegionCBM();}
+
+function startLoading(id){
+  const car=regionCars.find(c=>c.id===id);
+  if(!car||car.status!=='대기')return;
+  car.status='상차중';
+  car.startTime=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  renderRegionCBM();
+}
+
+function departCar(id){
+  const car=regionCars.find(c=>c.id===id);
+  if(!car||car.status!=='상차중')return;
+  car.status='출하';
+  car.departTime=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  dispatchHistory.push({...car});
+  renderRegionCBM();
+}
+
+function renderRegionCBM(){
+  const rows=snapshots.length?snapshots[snapshots.length-1].rows:[];
+  const ratio=getRegionRatio();
+  const totalCBM=getRegionCBM_total(rows);
+  const departedByRegion={};
+  dispatchHistory.forEach(c=>{departedByRegion[c.region]=(departedByRegion[c.region]||0)+c.loadedCBM;});
+
+  regionCars.forEach(car=>{
+    if(car.status!=='상차중')return;
+    const regionRatio=ratio[car.region]||0;
+    const regionCBM=totalCBM*regionRatio;
+    const departed=departedByRegion[car.region]||0;
+    const available=Math.max(0,regionCBM-departed);
+    const siblings=regionCars.filter(c=>c.status==='상차중'&&c.region===car.region);
+    const totalVol=siblings.reduce((a,c)=>a+c.vol,0);
+    car.loadedCBM=totalVol>0?Math.min(car.vol,available*(car.vol/totalVol)):0;
+  });
+
+  const activeRegions=[...new Set(regionCars.map(c=>c.region))];
+  const summaryEl=document.getElementById('region-summary');
+  if(summaryEl){
+    summaryEl.innerHTML=activeRegions.length?activeRegions.map(region=>{
+      const cars=regionCars.filter(c=>c.region===region);
+      const rv=ratio[region]||0;
+      const regionCBM=parseFloat((totalCBM*rv).toFixed(2));
+      const departed=departedByRegion[region]||0;
+      const loaded=cars.filter(c=>c.status==='상차중').reduce((a,c)=>a+c.loadedCBM,0);
+      const totalVol=cars.reduce((a,c)=>a+c.vol,0);
+      const pct=totalVol>0?Math.round((departed+loaded)/totalVol*100):0;
+      const col=REGION_COLORS[region]||'#888';
+      const pCol=pct>=80?'#639922':pct>=50?'#BA7517':'#E24B4A';
+      return`<div style="border:1.5px solid ${col};border-radius:10px;overflow:hidden;">
+        <div style="background:${col};color:#fff;padding:8px 12px;font-size:13px;font-weight:600;display:flex;justify-content:space-between;"><span>${region}</span><span style="font-size:11px;opacity:.85;">${Math.round(rv*100)}% 비중</span></div>
+        <div style="padding:10px 12px;">
+          <div style="font-size:11px;color:var(--ts);margin-bottom:3px;">권역 출고완료 CBM</div>
+          <div style="font-size:20px;font-weight:600;color:${col};">${regionCBM.toFixed(1)} CBM</div>
+          <div style="background:var(--bs);border-radius:4px;height:8px;margin:6px 0;"><div style="height:8px;border-radius:4px;width:${Math.min(pct,100)}%;background:${pCol};transition:width .4s;"></div></div>
+          <div style="font-size:11px;color:var(--ts);">차량 ${cars.length}대 · 용량 ${totalVol}CBM · <strong style="color:${pCol};">${pct}% 적재</strong></div>
+        </div>
+      </div>`;
+    }).join(''):'<div style="grid-column:1/-1;" class="ec">차량을 추가하세요</div>';
+  }
+
+  const carListEl=document.getElementById('region-car-list');
+  if(carListEl){
+    carListEl.innerHTML=regionCars.length?regionCars.map((c,i)=>{
+      const col=REGION_COLORS[c.region]||'#888';
+      const pct=c.vol>0?Math.round(c.loadedCBM/c.vol*100):0;
+      const pCol=pctColor(pct);
+      return`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:0.5px solid var(--bd);border-radius:var(--rmd);margin-bottom:5px;background:var(--bp);">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0;"></span>
+        <span style="font-size:12px;font-weight:600;min-width:42px;color:${col};">${c.region}</span>
+        <select style="font-size:11px;height:24px;padding:0 4px;" onchange="(function(v){regionCars[${i}].type=v;regionCars[${i}].vol=v==='TR'?${TR_VOL}:${TON_VOL};renderRegionCBM();})(this.value)">
+          <option value="TR"${c.type==='TR'?' selected':''}>TR (${TR_VOL}CBM)</option>
+          <option value="11톤"${c.type==='11톤'?' selected':''}>11톤 (${TON_VOL}CBM)</option>
+        </select>
+        <span style="font-size:11px;color:var(--ts);">${c.idx}호차</span>
+        <span style="font-size:12px;font-weight:500;color:${col};">${c.loadedCBM.toFixed(1)} / ${c.vol} CBM</span>
+        <div style="flex:1;background:var(--bs);border-radius:3px;height:6px;min-width:50px;"><div style="height:6px;border-radius:3px;width:${Math.min(pct,100)}%;background:${pCol};transition:width .4s;"></div></div>
+        <span style="font-size:11px;font-weight:500;color:${pCol};min-width:30px;">${pct}%</span>
+        <span style="font-size:11px;color:var(--tt);min-width:55px;">${c.status==='상차중'?'🔄 '+c.startTime:c.status==='출하'?'✓ '+c.departTime:'대기중'}</span>
+        ${c.status==='대기'?`<button class="btn btnsm" style="background:#185FA5;color:#fff;border-color:#185FA5;" onclick="startLoading(${c.id})">상차 시작</button><button class="btndel" onclick="removeRegionCar(${c.id})">삭제</button>`:''}
+        ${c.status==='상차중'?`<button class="btn btnsm" style="background:#A32D2D;color:#fff;border-color:#A32D2D;" onclick="departCar(${c.id})">출하</button>`:''}
+      </div>`;
+    }).join(''):'<div style="font-size:12px;color:var(--tt);padding:6px 0;">차량을 추가하세요</div>';
+  }
+
+  const tbEl=document.getElementById('tbody-region-cars');
+  if(tbEl){
+    tbEl.innerHTML=regionCars.length?regionCars.map(c=>{
+      const col=REGION_COLORS[c.region]||'#888';
+      const pct=c.vol>0?Math.round(c.loadedCBM/c.vol*100):0;
+      return`<tr>
+        <td class="tl"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${col};margin-right:5px;vertical-align:middle;"></span>${c.region}</td>
+        <td class="tl">${c.idx}호차</td>
+        <td><span class="bx ${c.type==='TR'?'bi':'bg'}">${c.type}</span></td>
+        <td>${c.vol}CBM</td>
+        <td style="font-weight:500;color:${col};">${c.loadedCBM.toFixed(1)}CBM</td>
+        <td><span class="bx ${pctBadge(pct)}">${pct}%</span></td>
+        <td><span class="bx ${c.status==='상차중'?'bi':c.status==='출하'?'bg':'by'}">${c.status}</span></td>
+        <td>${c.status==='대기'?`<button class="btn btnsm" onclick="startLoading(${c.id})">상차 시작</button>`:c.status==='상차중'?`<button class="btn btnsm" style="background:#A32D2D;color:#fff;border-color:#A32D2D;" onclick="departCar(${c.id})">출하</button>`:'-'}</td>
+      </tr>`;
+    }).join(''):'<tr><td colspan="8" class="ec">차량을 추가하세요</td></tr>';
+  }
+
+  const histEl=document.getElementById('tbody-dispatch-history');
+  if(histEl){
+    histEl.innerHTML=dispatchHistory.length?[...dispatchHistory].reverse().map(c=>{
+      const pct=c.vol>0?Math.round(c.loadedCBM/c.vol*100):0;
+      return`<tr>
+        <td class="tl">${c.region}</td><td class="tl">${c.idx}호차</td>
+        <td><span class="bx ${c.type==='TR'?'bi':'bg'}">${c.type}</span></td>
+        <td>${c.departTime||'-'}</td>
+        <td style="font-weight:500;">${c.loadedCBM.toFixed(1)}CBM</td>
+        <td><span class="bx ${pctBadge(pct)}">${pct}%</span></td>
+      </tr>`;
+    }).join(''):'<tr><td colspan="6" class="ec">출하 이력 없음</td></tr>';
+  }
+
+  clearTimeout(window._cbmTimer);
+  if(regionCars.some(c=>c.status==='상차중'))window._cbmTimer=setTimeout(renderRegionCBM,60000);
+}
+
+function calcCBM(){renderRegionCBM();}
+function addCar(){}
+function removeCar(){}
+function renderCarList(){}
 
 // 잔업
 function addOT(s){otList[s].push({id:Date.now(),ppl:0,hrs:0});renderOT(s);calcLabor();}
