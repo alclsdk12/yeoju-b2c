@@ -121,110 +121,95 @@ input,select{font-size:12px;padding:3px 6px;height:26px;border:0.5px solid var(-
 </div>
 <div id="filter-info" class="fbar" style="display:none;justify-content:space-between;"></div>
 <div id="floor-unmatch-alert" style="display:none;background:#FFF3CD;border:1px solid #BA7517;border-radius:6px;padding:4px 12px;font-size:11px;color:#7A4500;margin-bottom:.5rem;align-items:center;gap:4px;"></div>
-<div class="tabs">
+<div class="tabs" style="display:flex;align-items:center;gap:5px;margin-bottom:1rem;flex-wrap:wrap;">
   <button class="tab on" onclick="go('summary')">요약</button>
   <button class="tab" onclick="go('hourly')">시간대별 현황</button>
   <button class="tab" onclick="go('floor')">층별현황</button>
   <button class="tab" onclick="go('dispatch')">배차 판단</button>
   <button class="tab" onclick="go('labor')">인력 &amp; 생산성</button>
   <button class="tab" onclick="go('restock')">재고보충 대조</button>
+  <div id="tab-kpi" style="margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px;">
+    <span style="display:flex;align-items:center;gap:5px;">
+      <span style="color:var(--color-text-secondary);font-weight:500;">배차</span>
+      <span id="tkpi-dispatch" style="font-weight:700;color:var(--color-text-primary);">-</span>
+    </span>
+    <span style="color:var(--color-border-secondary);">|</span>
+    <span style="display:flex;align-items:center;gap:4px;">
+      <span style="color:var(--color-text-secondary);font-weight:500;">생산성</span>
+      <span style="font-weight:600;color:var(--color-text-primary);">주 <span id="tkpi-day-uph">-</span></span>
+      <span style="color:var(--color-text-tertiary);">/</span>
+      <span style="font-weight:600;color:var(--color-text-primary);">야 <span id="tkpi-ngt-uph">-</span></span>
+      <span style="color:var(--color-text-tertiary);font-size:11px;">(<span id="tkpi-tot-uph">-</span>)</span>
+    </span>
+    <span style="color:var(--color-border-secondary);">|</span>
+    <span style="display:flex;align-items:center;gap:4px;">
+      <span style="color:var(--color-text-secondary);font-weight:500;">인력</span>
+      <span style="font-weight:600;color:var(--color-text-primary);">주 <span id="tkpi-day-ppl">-</span></span>
+      <span style="font-weight:600;color:var(--color-text-primary);">· 석 <span id="tkpi-eve-ppl">-</span></span>
+      <span style="font-weight:600;color:var(--color-text-primary);">· 야 <span id="tkpi-ngt-ppl">-</span></span>
+      <span style="color:var(--color-text-tertiary);font-size:11px;">(총 <span id="tkpi-tot-ppl">-</span>명)</span>
+    </span>
+  </div>
 </div>
 
 <!-- ===== 요약 ===== -->
 <div id="sec-summary" class="sec on" style="background:#f5f5f3;padding:16px;border-radius:12px;">
 
-  <!-- KPI 4개 -->
-  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px;">
-    <div style="background:#EBF3FF;border-radius:10px;padding:14px 16px;border-left:4px solid #185FA5;">
-      <div style="font-size:13px;font-weight:600;color:#185FA5;margin-bottom:6px;">총 주문</div>
-      <div style="font-size:30px;font-weight:700;color:#185FA5;line-height:1;" id="s-total">-</div>
-      <div style="font-size:12px;color:#555;margin-top:6px;">출고번호 기준</div>
-    </div>
-    <div style="background:#FCEBEB;border-radius:10px;padding:14px 16px;border-left:4px solid #A32D2D;">
-      <div style="font-size:13px;font-weight:600;color:#A32D2D;margin-bottom:6px;">미작업</div>
-      <div style="font-size:30px;font-weight:700;color:#A32D2D;line-height:1;" id="s-undone">-</div>
-      <div style="font-size:12px;color:#555;margin-top:6px;" id="s-undone-sub">-</div>
-    </div>
-    <div style="background:#EAF3DE;border-radius:10px;padding:14px 16px;border-left:4px solid #3B6D11;">
-      <div style="font-size:13px;font-weight:600;color:#3B6D11;margin-bottom:6px;">배차 상태</div>
-      <div style="font-size:30px;font-weight:700;color:#3B6D11;line-height:1;" id="s-dispatch">-</div>
-      <div style="font-size:12px;color:#555;margin-top:6px;" id="s-dispatch-sub">-</div>
-    </div>
-    <div style="background:#f0f4f8;border-radius:10px;padding:14px 16px;border-left:4px solid #444;">
-      <div style="font-size:13px;font-weight:600;color:#333;margin-bottom:6px;">총 투입인원</div>
-      <div style="font-size:30px;font-weight:700;color:#1a1a18;line-height:1;" id="s-ppl">-</div>
-      <div style="font-size:12px;color:#555;margin-top:6px;" id="s-ppl-sub">-</div>
-    </div>
-  </div>
-
-  <!-- 출고완료 / 생산성 / 인력 3분할 -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
-    <div style="background:#fff;border:1.5px solid #185FA5;border-radius:10px;overflow:hidden;">
-      <div style="background:#185FA5;color:#fff;padding:9px 16px;font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
-        <span>출고완료</span><span style="font-size:13px;font-weight:500;opacity:.9;" id="s-rate">진척도 -</span>
+  <!-- KPI 통합 카드 -->
+  <div style="background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:12px;padding:16px 20px;margin-bottom:12px;">
+    <div style="display:flex;align-items:baseline;gap:24px;margin-bottom:14px;">
+      <div>
+        <span style="font-size:12px;color:#888;margin-right:8px;">총 주문</span>
+        <span style="font-size:28px;font-weight:700;color:#185FA5;" id="s-total">-</span>
+        <span style="font-size:12px;color:#aaa;margin-left:6px;">출고번호 기준</span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;">
-        <div style="padding:14px 16px;border-right:1px solid #e8eef5;">
-          <div style="font-size:26px;font-weight:700;color:#185FA5;" id="s-day-qty">-</div>
-          <div style="font-size:12px;color:#888;margin-top:2px;">주간 (06~18시)</div>
-        </div>
-        <div style="padding:14px 16px;">
-          <div style="font-size:26px;font-weight:700;color:#1D9E75;" id="s-ngt-qty">-</div>
-          <div style="font-size:12px;color:#888;margin-top:2px;">야간 (18~06시)</div>
-        </div>
-      </div>
-      <div style="padding:8px 16px 12px;border-top:1px solid #e8eef5;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:13px;font-weight:600;color:#333;" id="s-done-total">합계 -건</span>
-          <div style="flex:1;background:#e0e8f0;border-radius:4px;height:10px;"><div id="s-prog-bar" style="height:10px;border-radius:4px;width:0%;background:#E24B4A;transition:width .4s;"></div></div>
-          <span style="font-size:15px;font-weight:700;" id="s-prog-pct">-</span>
-        </div>
+      <div style="width:1px;height:22px;background:rgba(0,0,0,0.1);flex-shrink:0;"></div>
+      <div>
+        <span style="font-size:12px;color:#888;margin-right:8px;">미작업</span>
+        <span style="font-size:28px;font-weight:700;color:#A32D2D;" id="s-undone">-</span>
+        <span style="font-size:12px;color:#aaa;margin-left:6px;" id="s-undone-sub">-</span>
       </div>
     </div>
-
-    <div style="background:#fff;border:1.5px solid #1D9E75;border-radius:10px;overflow:hidden;">
-      <div style="background:#1D9E75;color:#fff;padding:9px 16px;font-size:14px;font-weight:700;">생산성</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;">
-        <div style="padding:14px 16px;border-right:1px solid #e8f5ee;">
-          <div style="font-size:14px;font-weight:500;color:#555;margin-bottom:4px;">주간 (06~18시)</div>
-          <div style="font-size:30px;font-weight:800;color:#185FA5;line-height:1;" id="s-day-uph">-</div>
-        </div>
-        <div style="padding:14px 16px;">
-          <div style="font-size:14px;font-weight:500;color:#555;margin-bottom:4px;">야간 (18~06시)</div>
-          <div style="font-size:30px;font-weight:800;color:#1D9E75;line-height:1;" id="s-ngt-uph">-</div>
-        </div>
+    <div style="height:0.5px;background:rgba(0,0,0,0.08);margin-bottom:12px;"></div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <span style="font-size:12px;color:#888;white-space:nowrap;font-weight:500;">출고완료</span>
+      <div style="display:flex;align-items:baseline;gap:5px;">
+        <span style="font-size:11px;color:#aaa;">주간</span>
+        <span style="font-size:22px;font-weight:700;color:#185FA5;line-height:1;" id="s-day-qty">-</span>
       </div>
-      <div style="padding:8px 16px 12px;border-top:1px solid #e8f5ee;">
-        <span style="font-size:13px;color:#555;">전체 생산성 <strong style="color:#1D9E75;font-size:15px;" id="s-uph">-</strong></span>
+      <div style="display:flex;align-items:baseline;gap:5px;">
+        <span style="font-size:11px;color:#aaa;">야간</span>
+        <span style="font-size:22px;font-weight:700;color:#1D9E75;line-height:1;" id="s-ngt-qty">-</span>
       </div>
-    </div>
-
-    <div style="background:#fff;border:1.5px solid #555;border-radius:10px;overflow:hidden;">
-      <div style="background:#444;color:#fff;padding:9px 16px;font-size:14px;font-weight:700;">투입인력 현황</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #eee;">
-        <div style="padding:12px 10px;border-right:1px solid #eee;text-align:center;">
-          <div style="font-size:12px;color:#555;margin-bottom:4px;">주간</div>
-          <div style="font-size:24px;font-weight:700;color:#185FA5;" id="s-day-ppl">-</div>
-          <div style="font-size:11px;color:#888;">명</div>
-        </div>
-        <div style="padding:12px 10px;border-right:1px solid #eee;text-align:center;">
-          <div style="font-size:12px;color:#555;margin-bottom:4px;">석간</div>
-          <div style="font-size:24px;font-weight:700;color:#BA7517;" id="s-eve-ppl">-</div>
-          <div style="font-size:11px;color:#888;">명</div>
-        </div>
-        <div style="padding:12px 10px;text-align:center;">
-          <div style="font-size:12px;color:#555;margin-bottom:4px;">야간</div>
-          <div style="font-size:24px;font-weight:700;color:#1D9E75;" id="s-ngt-ppl">-</div>
-          <div style="font-size:11px;color:#888;">명</div>
-        </div>
+      <div style="display:flex;align-items:baseline;gap:5px;">
+        <span style="font-size:11px;color:#aaa;">합계</span>
+        <span style="font-size:16px;font-weight:600;color:#333;" id="s-done-total">-</span>
       </div>
-      <div style="padding:8px 16px 12px;">
-        <span style="font-size:13px;color:#555;">총 <strong style="color:#333;font-size:15px;" id="s-snap-time">-</strong> · <span id="s-snap-cnt" style="color:#888;">0회</span></span>
+      <div style="flex:1;background:#eee;border-radius:4px;height:8px;">
+        <div id="s-prog-bar" style="height:8px;border-radius:4px;width:0%;background:#E24B4A;transition:width .4s;"></div>
       </div>
+      <span style="font-size:16px;font-weight:700;white-space:nowrap;" id="s-prog-pct">-</span>
+      <span style="font-size:12px;color:#888;white-space:nowrap;" id="s-rate"></span>
     </div>
   </div>
 
-  <!-- 통합 차트 -->
+  <!-- 숨김 (하위 호환용) -->
+  <div style="display:none;">
+    <span id="s-dispatch">-</span>
+    <span id="s-dispatch-sub">-</span>
+    <span id="s-ppl">-</span>
+    <span id="s-ppl-sub">-</span>
+    <span id="s-day-uph">-</span>
+    <span id="s-ngt-uph">-</span>
+    <span id="s-uph">-</span>
+    <span id="s-day-ppl">-</span>
+    <span id="s-eve-ppl">-</span>
+    <span id="s-ngt-ppl">-</span>
+    <span id="s-snap-time">-</span>
+    <span id="s-snap-cnt">0회</span>
+  </div>
+
+  <!-- 통합 차트 (크게) -->
   <div style="background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:12px;padding:1rem;margin-bottom:1rem;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
       <span style="font-size:12px;font-weight:500;color:#333;">시간대별 인입 / 처리량 / 누적처리율</span>
@@ -234,13 +219,13 @@ input,select{font-size:12px;padding:3px 6px;height:26px;border:0.5px solid var(-
         <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:2px;background:#BA7517;display:inline-block;"></span>누적처리율</span>
       </div>
     </div>
-    <div class="cw" style="height:220px;"><canvas id="sumComboChart" role="img" aria-label="시간대별 주문 인입과 처리량 막대, 누적처리율 꺾은선 복합차트">-</canvas></div>
+    <div class="cw" style="height:420px;"><canvas id="sumComboChart" role="img" aria-label="시간대별 주문 인입과 처리량 막대, 누적처리율 꺾은선 복합차트">-</canvas></div>
   </div>
 
-  <!-- 배송유형/주문분류/층별 WMS 테이블 -->
+  <!-- WMS 테이블 -->
   <div id="sum-wms-tables"></div>
 
-  <!-- 기존 테이블 (숨김, 데이터 유지용) -->
+  <!-- 숨김 DOM -->
   <div style="display:none;">
     <div id="sum-labor"></div>
     <div id="sum-dispatch"></div>
@@ -553,7 +538,7 @@ input,select{font-size:12px;padding:3px 6px;height:26px;border:0.5px solid var(-
 <div class="toast" id="cap-toast">클립보드에 복사됐습니다</div>
 
 <!-- 캡처 전용 레이아웃 (숨김) -->
-<div id="cap-layout" style="position:absolute;left:-9999px;top:0;width:1100px;background:#fff;padding:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;"></div>
+<div id="cap-layout" style="position:absolute;left:-9999px;top:0;width:1100px;background:#141929;padding:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -618,7 +603,7 @@ async function captureTab(){
     await new Promise(r=>setTimeout(r,300));
     const el=document.getElementById('cap-layout');
     try{
-      const canvas=await html2canvas(el,{backgroundColor:'#ffffff',scale:2,useCORS:true,logging:false});
+      const canvas=await html2canvas(el,{backgroundColor:'#141929',scale:2,useCORS:true,logging:false});
       canvas.toBlob(async blob=>{
         try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);showToast('클립보드에 복사됐습니다');}
         catch(e){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;const now=new Date();a.download='출고현황_'+(now.getMonth()+1)+'월'+now.getDate()+'일_'+now.getHours()+'시'+String(now.getMinutes()).padStart(2,'0')+'분.png';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);showToast('이미지 파일로 다운로드됩니다');}
@@ -763,22 +748,27 @@ function buildCapLayout(){
       <td style="padding:4px 8px;min-width:110px;">${gaugeBar(p)}</td>
     </tr>`;
   }
-  // 테이블 스타일 정의
-  const TH='padding:9px 12px;text-align:center;font-size:14px;font-weight:700;background:#e8eef5;color:#111;border-bottom:2px solid #b0c0d4;border-right:0.5px solid #ccd6e0;white-space:nowrap;';
-  const THL='padding:9px 12px;text-align:left;font-size:14px;font-weight:700;background:#e8eef5;color:#111;border-bottom:2px solid #b0c0d4;border-right:0.5px solid #ccd6e0;white-space:nowrap;';
-  const TD='padding:8px 12px;text-align:center;font-size:14px;font-weight:500;color:#111;border-bottom:0.5px solid #dde2e8;border-right:0.5px solid #dde2e8;';
-  const TDL='padding:8px 12px;text-align:left;font-size:14px;font-weight:500;color:#111;border-bottom:0.5px solid #dde2e8;border-right:0.5px solid #dde2e8;';
+  // 테이블 스타일 정의 (다크)
+  const DK_BG='#1e2433';
+  const DK_HDR='#252d3f';
+  const DK_ROW='#1e2433';
+  const DK_ALT='#242c3e';
+  const DK_TOT='#1a2540';
+  const DK_BD='rgba(255,255,255,0.08)';
+  const TH=`padding:10px 13px;text-align:center;font-size:14px;font-weight:700;background:${DK_HDR};color:#d8dff0;border-bottom:1px solid rgba(255,255,255,0.15);border-right:0.5px solid ${DK_BD};white-space:nowrap;`;
+  const THL=`padding:10px 13px;text-align:left;font-size:14px;font-weight:700;background:${DK_HDR};color:#d8dff0;border-bottom:1px solid rgba(255,255,255,0.15);border-right:0.5px solid ${DK_BD};white-space:nowrap;`;
+  const TD=`padding:8px 13px;text-align:center;font-size:14px;font-weight:500;color:#e8ecf8;border-bottom:0.5px solid ${DK_BD};border-right:0.5px solid ${DK_BD};background:${DK_ROW};`;
+  const TDL=`padding:8px 13px;text-align:left;font-size:14px;font-weight:500;color:#e8ecf8;border-bottom:0.5px solid ${DK_BD};border-right:0.5px solid ${DK_BD};background:${DK_ROW};`;
 
-  // 미작업 강조: 빨간 배경 + 흰 글씨
-  function tdUndone(val,bg=''){return`<td style="${TD}${bg}background:#FCEBEB;color:#A32D2D;font-weight:800;font-size:16px;">${val.toLocaleString()}</td>`;}
-  function tdDone(val,bg=''){return`<td style="${TD}${bg}color:#1D6B2F;font-weight:800;font-size:16px;">${val>0?val.toLocaleString():'-'}</td>`;}
+  function tdUndone(val,bg=''){return`<td style="${TD}background:#3d1a1a;color:#ff8080;font-weight:800;font-size:16px;">${val.toLocaleString()}</td>`;}
+  function tdDone(val,bg=''){return`<td style="${TD}color:#5effa0;font-weight:800;font-size:16px;">${val>0?val.toLocaleString():'-'}</td>`;}
   function tdProg(p,bg=''){
-    const col=p>=80?'#3B9E22':p>=40?'#BA7517':'#E24B4A';
-    const tc=p>=80?'#1D6B2F':p>=40?'#7A4500':'#A32D2D';
-    return`<td style="${TD}${bg}min-width:120px;">
+    const col=p>=80?'#4ade80':p>=40?'#fbbf24':'#f87171';
+    const tc=p>=80?'#4ade80':p>=40?'#fbbf24':'#f87171';
+    return`<td style="${TD}min-width:120px;">
       <div style="display:flex;align-items:center;gap:7px;">
-        <div style="flex:1;background:#d8d8d8;border-radius:4px;height:10px;"><div style="height:10px;border-radius:4px;width:${Math.min(p,100)}%;background:${col};"></div></div>
-        <span style="font-size:15px;font-weight:800;color:${tc};min-width:36px;">${p}%</span>
+        <div style="flex:1;background:rgba(255,255,255,0.1);border-radius:4px;height:8px;"><div style="height:8px;border-radius:4px;width:${Math.min(p,100)}%;background:${col};"></div></div>
+        <span style="font-size:14px;font-weight:800;color:${tc};min-width:36px;">${p}%</span>
       </div>
     </td>`;
   }
@@ -786,20 +776,18 @@ function buildCapLayout(){
   function capTR(label,v,isTot,leftAlign){
     const p=v.tot>0?Math.round(v.dn/v.tot*100):0;
     const ud=undone(v);
-    const bg=isTot?'background:#EBF3FF;':'';
-    const lStyle=isTot
-      ?`${leftAlign?TDL:TD}${bg}font-weight:800;font-size:15px;`
-      :`${leftAlign?TDL:TD}`;
+    const rowBg=isTot?`background:${DK_TOT};`:``;
+    const fs=isTot?'font-weight:800;font-size:14px;color:#fff;':'';
     return`<tr>
-      <td style="${lStyle}">${label}</td>
-      <td style="${TD}${bg}${isTot?'font-weight:800;font-size:15px;':''}">${v.tot.toLocaleString()}</td>
-      <td style="${TD}${bg}">${v.nw>0?v.nw.toLocaleString():'-'}</td>
-      <td style="${TD}${bg}">${v.al>0?v.al.toLocaleString():'-'}</td>
-      <td style="${TD}${bg}">${v.pk>0?v.pk.toLocaleString():'-'}</td>
-      <td style="${TD}${bg}">${v.rd>0?v.rd.toLocaleString():'-'}</td>
-      ${tdUndone(ud,bg)}
-      ${tdDone(v.dn,bg)}
-      ${tdProg(p,bg)}
+      <td style="${leftAlign?TDL:TD}${rowBg}${fs}">${label}</td>
+      <td style="${TD}${rowBg}${isTot?'font-weight:800;font-size:14px;color:#fff;':''}">${v.tot.toLocaleString()}</td>
+      <td style="${TD}${rowBg}">${v.nw>0?v.nw.toLocaleString():'-'}</td>
+      <td style="${TD}${rowBg}">${v.al>0?v.al.toLocaleString():'-'}</td>
+      <td style="${TD}${rowBg}">${v.pk>0?v.pk.toLocaleString():'-'}</td>
+      <td style="${TD}${rowBg}">${v.rd>0?v.rd.toLocaleString():'-'}</td>
+      ${tdUndone(ud)}
+      ${tdDone(v.dn)}
+      ${tdProg(p)}
     </tr>`;
   }
 
@@ -807,16 +795,16 @@ function buildCapLayout(){
     return`<div style="margin-bottom:14px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <div style="width:4px;height:16px;background:${accentColor};border-radius:2px;"></div>
-        <span style="font-size:13px;font-weight:600;color:#1a1a18;">${title}</span>
-        <span style="font-size:11px;color:#aaa;">(단위: 건)</span>
+        <span style="font-size:13px;font-weight:600;color:#c8d0e0;">${title}</span>
+        <span style="font-size:11px;color:#666;">(단위: 건)</span>
       </div>
-      <table style="width:100%;border-collapse:collapse;border:0.5px solid #e0e6ed;border-radius:8px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;border:0.5px solid rgba(255,255,255,0.1);border-radius:8px;overflow:hidden;">
         <thead><tr>
           <th style="${THL}">${col1Header||'배송유형'}</th>
           <th style="${TH}">총합계</th><th style="${TH}">미할당</th><th style="${TH}">할당완료</th>
           <th style="${TH}">피킹완료</th><th style="${TH}">상차대기</th>
-          <th style="${TH}background:#FCEBEB;color:#A32D2D;">미작업</th>
-          <th style="${TH}background:#EAF3DE;color:#3B6D11;">출고완료</th>
+          <th style="${TH}background:#3d1a1a;color:#FF6B6B;">미작업</th>
+          <th style="${TH}background:#1a3d1a;color:#4ade80;">출고완료</th>
           <th style="${TH}">진척도</th>
         </tr></thead>
         <tbody>
@@ -840,66 +828,66 @@ function buildCapLayout(){
     FLOORS.forEach((f,fi)=>{
       const ft=fd[f]._tot;if(!ft.tot)return;
       const activeTypes=ORDER_TYPES.filter(o=>fd[f][o]&&fd[f][o].tot>0);
-      const floorBg=fi%2===0?'':'background:#fafafa;';
+      const floorBg=fi%2===0?'':`background:#1c2438;`;
       let first=true;
       activeTypes.forEach(o=>{
         const v=fd[f][o];if(!v.tot)return;
         const p=v.tot>0?Math.round(v.dn/v.tot*100):0;
         const ud=undone(v);
         tbRows+=`<tr>
-          ${first?`<td style="${TDL}${floorBg}font-weight:700;font-size:14px;vertical-align:middle;border-right:2px solid #c8d4e0;" rowspan="${activeTypes.length+1}">${f}</td>`:''}
+          ${first?`<td style="${TDL}${floorBg}font-weight:700;font-size:14px;vertical-align:middle;border-right:2px solid rgba(100,140,200,0.3);color:#c8d0e0;" rowspan="${activeTypes.length+1}">${f}</td>`:''}
           <td style="${TDL}${floorBg}font-weight:500;">${o}</td>
           <td style="${TD}${floorBg}">${v.tot.toLocaleString()}</td>
           <td style="${TD}${floorBg}">${v.nw>0?v.nw.toLocaleString():'-'}</td>
           <td style="${TD}${floorBg}">${v.al>0?v.al.toLocaleString():'-'}</td>
           <td style="${TD}${floorBg}">${v.pk>0?v.pk.toLocaleString():'-'}</td>
           <td style="${TD}${floorBg}">${v.rd>0?v.rd.toLocaleString():'-'}</td>
-          ${tdUndone(ud,floorBg)}
-          ${tdDone(v.dn,floorBg)}
-          ${tdProg(p,floorBg)}
+          ${tdUndone(ud)}
+          ${tdDone(v.dn)}
+          ${tdProg(p)}
         </tr>`;
         first=false;
       });
       const fp=ft.tot>0?Math.round(ft.dn/ft.tot*100):0;
       const fud=undone(ft);
       tbRows+=`<tr>
-        <td style="${TDL}background:#e8eef5;font-weight:800;font-size:15px;">${f} 소계</td>
-        <td style="${TD}background:#e8eef5;font-weight:800;font-size:15px;">${ft.tot.toLocaleString()}</td>
-        <td style="${TD}background:#e8eef5;">${ft.nw>0?ft.nw.toLocaleString():'-'}</td>
-        <td style="${TD}background:#e8eef5;">${ft.al>0?ft.al.toLocaleString():'-'}</td>
-        <td style="${TD}background:#e8eef5;">${ft.pk>0?ft.pk.toLocaleString():'-'}</td>
-        <td style="${TD}background:#e8eef5;">${ft.rd>0?ft.rd.toLocaleString():'-'}</td>
-        ${tdUndone(fud,'background:#e8eef5;')}
-        ${tdDone(ft.dn,'background:#e8eef5;')}
-        ${tdProg(fp,'background:#e8eef5;')}
+        <td style="${TDL}background:#1a2540;font-weight:800;font-size:14px;color:#fff;">${f} 소계</td>
+        <td style="${TD}background:#1a2540;font-weight:800;font-size:14px;color:#fff;">${ft.tot.toLocaleString()}</td>
+        <td style="${TD}background:#1a2540;">${ft.nw>0?ft.nw.toLocaleString():'-'}</td>
+        <td style="${TD}background:#1a2540;">${ft.al>0?ft.al.toLocaleString():'-'}</td>
+        <td style="${TD}background:#1a2540;">${ft.pk>0?ft.pk.toLocaleString():'-'}</td>
+        <td style="${TD}background:#1a2540;">${ft.rd>0?ft.rd.toLocaleString():'-'}</td>
+        ${tdUndone(fud)}
+        ${tdDone(ft.dn)}
+        ${tdProg(fp)}
       </tr>`;
     });
     const tp=totStat.tot>0?Math.round(totStat.dn/totStat.tot*100):0;
     const tud=undone(totStat);
     tbRows+=`<tr>
-      <td style="${TDL}background:#EBF3FF;font-weight:800;font-size:15px;" colspan="2">총계</td>
-      <td style="${TD}background:#EBF3FF;font-weight:800;font-size:15px;">${totStat.tot.toLocaleString()}</td>
-      <td style="${TD}background:#EBF3FF;">${totStat.nw>0?totStat.nw.toLocaleString():'-'}</td>
-      <td style="${TD}background:#EBF3FF;">${totStat.al>0?totStat.al.toLocaleString():'-'}</td>
-      <td style="${TD}background:#EBF3FF;">${totStat.pk>0?totStat.pk.toLocaleString():'-'}</td>
-      <td style="${TD}background:#EBF3FF;">${totStat.rd>0?totStat.rd.toLocaleString():'-'}</td>
-      ${tdUndone(tud,'background:#EBF3FF;')}
-      ${tdDone(totStat.dn,'background:#EBF3FF;')}
-      ${tdProg(tp,'background:#EBF3FF;')}
+      <td style="${TDL}background:#111827;font-weight:800;font-size:14px;color:#fff;" colspan="2">총계</td>
+      <td style="${TD}background:#111827;font-weight:800;color:#fff;">${totStat.tot.toLocaleString()}</td>
+      <td style="${TD}background:#111827;">${totStat.nw>0?totStat.nw.toLocaleString():'-'}</td>
+      <td style="${TD}background:#111827;">${totStat.al>0?totStat.al.toLocaleString():'-'}</td>
+      <td style="${TD}background:#111827;">${totStat.pk>0?totStat.pk.toLocaleString():'-'}</td>
+      <td style="${TD}background:#111827;">${totStat.rd>0?totStat.rd.toLocaleString():'-'}</td>
+      ${tdUndone(tud)}
+      ${tdDone(totStat.dn)}
+      ${tdProg(tp)}
     </tr>`;
     return`<div style="margin-bottom:14px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <div style="width:4px;height:16px;background:#BA7517;border-radius:2px;"></div>
-        <span style="font-size:13px;font-weight:600;color:#1a1a18;">(합계) 층별 출고 현황</span>
-        <span style="font-size:11px;color:#aaa;">(단위: 건)</span>
+        <span style="font-size:13px;font-weight:600;color:#c8d0e0;">(합계) 층별 출고 현황</span>
+        <span style="font-size:11px;color:#555;">(단위: 건)</span>
       </div>
-      <table style="width:100%;border-collapse:collapse;border:0.5px solid #e0e6ed;">
+      <table style="width:100%;border-collapse:collapse;border:0.5px solid rgba(255,255,255,0.1);">
         <thead><tr>
           <th style="${THL}">작업 층</th><th style="${THL}">구분</th>
           <th style="${TH}">총합계</th><th style="${TH}">미할당</th><th style="${TH}">할당완료</th>
           <th style="${TH}">피킹완료</th><th style="${TH}">상차대기</th>
-          <th style="${TH}background:#FCEBEB;color:#A32D2D;">미작업</th>
-          <th style="${TH}background:#EAF3DE;color:#3B6D11;">출고완료</th>
+          <th style="${TH}background:#3d1a1a;color:#FF6B6B;">미작업</th>
+          <th style="${TH}background:#1a3d1a;color:#4ade80;">출고완료</th>
           <th style="${TH}">진척도</th>
         </tr></thead>
         <tbody>${tbRows}</tbody>
@@ -922,108 +910,71 @@ function buildCapLayout(){
 
   const el=document.getElementById('cap-layout');
   el.innerHTML=`
-  <div style="border-bottom:3px solid #185FA5;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;">
-    <span style="font-size:20px;font-weight:700;color:#1a1a18;">여주B2C센터 출고현황</span>
-    <span style="font-size:14px;color:#555;font-weight:500;">${dateStr} · 업로드 ${snapshots.length}회</span>
+  <div style="border-bottom:3px solid #378ADD;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;">
+    <span style="font-size:20px;font-weight:700;color:#e8ecf4;">여주B2C센터 출고현황</span>
+    <span style="font-size:13px;color:#8892a4;font-weight:500;">${dateStr} · 업로드 ${snapshots.length}회</span>
   </div>
 
-  <!-- KPI 상단 4개 -->
-  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px;">
-    <div style="background:#EBF3FF;border-radius:10px;padding:14px 16px;border-left:4px solid #185FA5;">
-      <div style="font-size:13px;font-weight:600;color:#185FA5;margin-bottom:6px;">총 주문</div>
-      <div style="font-size:32px;font-weight:700;color:#185FA5;line-height:1;">${tot.toLocaleString()}</div>
-      <div style="font-size:13px;color:#555;margin-top:6px;">출고번호 기준</div>
+  <!-- KPI 통합 카드 (다크) -->
+  <div style="background:#1e2433;border:0.5px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px 20px;margin-bottom:10px;">
+    <div style="display:flex;align-items:baseline;gap:24px;margin-bottom:14px;">
+      <div>
+        <span style="font-size:13px;color:#8892a4;margin-right:8px;">총 주문</span>
+        <span style="font-size:36px;font-weight:700;color:#60a5fa;line-height:1;">${tot.toLocaleString()}</span>
+        <span style="font-size:13px;color:#6b7a94;margin-left:8px;">출고번호 기준</span>
+      </div>
+      <div style="width:1px;height:28px;background:rgba(255,255,255,0.12);flex-shrink:0;"></div>
+      <div>
+        <span style="font-size:13px;color:#8892a4;margin-right:8px;">미작업</span>
+        <span style="font-size:36px;font-weight:700;color:#f87171;line-height:1;">${ud.toLocaleString()}</span>
+        <span style="font-size:13px;color:#6b7a94;margin-left:8px;">미할당 ${nw.toLocaleString()} · 상차 ${rd.toLocaleString()}</span>
+      </div>
     </div>
-    <div style="background:#FCEBEB;border-radius:10px;padding:14px 16px;border-left:4px solid #A32D2D;">
-      <div style="font-size:13px;font-weight:600;color:#A32D2D;margin-bottom:6px;">미작업</div>
-      <div style="font-size:32px;font-weight:700;color:#A32D2D;line-height:1;">${ud.toLocaleString()}</div>
-      <div style="font-size:13px;color:#555;margin-top:6px;">미할당 ${nw.toLocaleString()} · 상차 ${rd.toLocaleString()}</div>
-    </div>
-    <div style="background:#EAF3DE;border-radius:10px;padding:14px 16px;border-left:4px solid #3B6D11;">
-      <div style="font-size:13px;font-weight:600;color:#3B6D11;margin-bottom:6px;">배차 상태</div>
-      <div style="font-size:32px;font-weight:700;color:#3B6D11;line-height:1;">${dispEl}</div>
-      <div style="font-size:13px;color:#555;margin-top:6px;">${dispSub}</div>
-    </div>
-    <div style="background:#f0f4f8;border-radius:10px;padding:14px 16px;border-left:4px solid #444;">
-      <div style="font-size:13px;font-weight:600;color:#333;margin-bottom:6px;">총 투입인원</div>
-      <div style="font-size:32px;font-weight:700;color:#1a1a18;line-height:1;">${tPpl}명</div>
-      <div style="font-size:13px;color:#555;margin-top:6px;">주간 ${dayPpl} · 석간 ${evePpl} · 야간 ${ngtPpl}</div>
+    <div style="height:0.5px;background:rgba(255,255,255,0.08);margin-bottom:12px;"></div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <span style="font-size:14px;color:#8892a4;white-space:nowrap;font-weight:500;">출고완료</span>
+      <div style="display:flex;align-items:baseline;gap:5px;">
+        <span style="font-size:13px;color:#6b7a94;">주간</span>
+        <span style="font-size:28px;font-weight:700;color:#60a5fa;line-height:1;">${dQty}</span>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:5px;">
+        <span style="font-size:13px;color:#6b7a94;">야간</span>
+        <span style="font-size:28px;font-weight:700;color:#34d399;line-height:1;">${nQty}</span>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:5px;">
+        <span style="font-size:13px;color:#6b7a94;">합계</span>
+        <span style="font-size:20px;font-weight:600;color:#c8d0e0;">${dn.toLocaleString()}</span>
+      </div>
+      <div style="flex:1;background:rgba(255,255,255,0.1);border-radius:4px;height:10px;">
+        <div style="height:10px;border-radius:4px;width:${Math.min(prog,100)}%;background:${pBar};"></div>
+      </div>
+      <span style="font-size:20px;font-weight:700;color:${pCol};white-space:nowrap;">${prog}%</span>
     </div>
   </div>
 
-  <!-- 출고완료 / 생산성 / 인력 인시 3분할 -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
-    <!-- 출고완료 -->
-    <div style="background:#fff;border:1.5px solid #185FA5;border-radius:10px;overflow:hidden;">
-      <div style="background:#185FA5;color:#fff;padding:9px 16px;font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
-        <span>출고완료</span>
-        <span style="font-size:13px;font-weight:500;opacity:.9;">진척도 ${prog}%</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;">
-        <div style="padding:14px 16px;border-right:1px solid #e8eef5;">
-          <div style="font-size:28px;font-weight:700;color:#185FA5;">${dQty}</div>
-          <div style="font-size:12px;color:#888;margin-top:2px;">주간 (06~18시)</div>
-        </div>
-        <div style="padding:14px 16px;">
-          <div style="font-size:28px;font-weight:700;color:#1D9E75;">${nQty}</div>
-          <div style="font-size:12px;color:#888;margin-top:2px;">야간 (18~06시)</div>
-        </div>
-      </div>
-      <div style="padding:8px 16px 12px;border-top:1px solid #e8eef5;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:13px;font-weight:600;color:#333;">합계 ${dn.toLocaleString()}건</span>
-          <div style="flex:1;background:#e0e8f0;border-radius:4px;height:10px;"><div style="height:10px;border-radius:4px;width:${Math.min(prog,100)}%;background:${pBar};"></div></div>
-          <span style="font-size:15px;font-weight:700;color:${pCol};">${prog}%</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 생산성 -->
-    <div style="background:#fff;border:1.5px solid #1D9E75;border-radius:10px;overflow:hidden;">
-      <div style="background:#1D9E75;color:#fff;padding:9px 16px;font-size:14px;font-weight:700;">
-        <span>생산성</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;">
-        <div style="padding:14px 16px;border-right:1px solid #e8f5ee;">
-          <div style="font-size:15px;font-weight:500;color:#555;margin-bottom:4px;">주간 (06~18시)</div>
-          <div style="font-size:32px;font-weight:800;color:#185FA5;line-height:1;">${dUPH}</div>
-        </div>
-        <div style="padding:14px 16px;">
-          <div style="font-size:15px;font-weight:500;color:#555;margin-bottom:4px;">야간 (18~06시)</div>
-          <div style="font-size:32px;font-weight:800;color:#1D9E75;line-height:1;">${nUPH}</div>
-        </div>
-      </div>
-      <div style="padding:8px 16px 12px;border-top:1px solid #e8f5ee;">
-        <span style="font-size:13px;color:#555;">전체 생산성 <strong style="color:#1D9E75;font-size:15px;">${tUPH}</strong></span>
-      </div>
-    </div>
-
-    <!-- 인력 주/석/야 -->
-    <div style="background:#fff;border:1.5px solid #555;border-radius:10px;overflow:hidden;">
-      <div style="background:#444;color:#fff;padding:9px 16px;font-size:14px;font-weight:700;">
-        투입인력 현황
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #eee;">
-        <div style="padding:12px 14px;border-right:1px solid #eee;text-align:center;">
-          <div style="font-size:12px;color:#555;margin-bottom:4px;">주간</div>
-          <div style="font-size:26px;font-weight:700;color:#185FA5;">${dayPpl}</div>
-          <div style="font-size:12px;color:#888;">명</div>
-        </div>
-        <div style="padding:12px 14px;border-right:1px solid #eee;text-align:center;">
-          <div style="font-size:12px;color:#555;margin-bottom:4px;">석간</div>
-          <div style="font-size:26px;font-weight:700;color:#BA7517;">${evePpl}</div>
-          <div style="font-size:12px;color:#888;">명</div>
-        </div>
-        <div style="padding:12px 14px;text-align:center;">
-          <div style="font-size:12px;color:#555;margin-bottom:4px;">야간</div>
-          <div style="font-size:26px;font-weight:700;color:#1D9E75;">${ngtPpl}</div>
-          <div style="font-size:12px;color:#888;">명</div>
-        </div>
-      </div>
-      <div style="padding:8px 16px 12px;">
-        <span style="font-size:13px;color:#555;">총 <strong style="color:#333;font-size:15px;">${tPpl}명</strong> 투입</span>
-      </div>
-    </div>
+  <!-- 배차·생산성·인력 한 줄 (다크) -->
+  <div style="background:#1a2030;border-radius:8px;padding:10px 18px;margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <span style="display:flex;align-items:center;gap:6px;">
+      <span style="font-size:13px;color:#8892a4;font-weight:500;">배차</span>
+      <span style="font-size:14px;font-weight:700;color:${dispEl.includes('필요')?'#f87171':'#34d399'}">${dispEl}</span>
+      <span style="font-size:12px;color:#6b7a94;">${dispSub}</span>
+    </span>
+    <span style="color:rgba(255,255,255,0.15);">|</span>
+    <span style="display:flex;align-items:center;gap:6px;">
+      <span style="font-size:13px;color:#8892a4;font-weight:500;">생산성</span>
+      <span style="font-size:14px;font-weight:700;color:#c8d0e0;">주 ${dUPH}</span>
+      <span style="font-size:13px;color:#6b7a94;">/ 야</span>
+      <span style="font-size:14px;font-weight:700;color:#c8d0e0;">${nUPH}</span>
+      <span style="font-size:12px;color:#6b7a94;">(전체 ${tUPH})</span>
+    </span>
+    <span style="color:rgba(255,255,255,0.15);">|</span>
+    <span style="display:flex;align-items:center;gap:6px;">
+      <span style="font-size:13px;color:#8892a4;font-weight:500;">인력</span>
+      <span style="font-size:14px;font-weight:700;color:#c8d0e0;">주 ${dayPpl}</span>
+      <span style="font-size:14px;font-weight:700;color:#c8d0e0;">· 석 ${evePpl}</span>
+      <span style="font-size:14px;font-weight:700;color:#c8d0e0;">· 야 ${ngtPpl}</span>
+      <span style="font-size:12px;color:#6b7a94;">(총 ${tPpl}명)</span>
+    </span>
   </div>
 
   <!-- 배송유형별 / 주문분류별 / 층별 WMS 테이블 -->
@@ -1037,38 +988,73 @@ function buildCapLayout(){
   )}
   ${buildFloorCapTable(rows,totStat)}
 
-  <!-- 차트 -->
-  <div style="background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:10px;overflow:hidden;">
-    <div style="background:#185FA5;color:#fff;padding:7px 14px;font-size:13px;font-weight:500;display:flex;justify-content:space-between;align-items:center;">
-      <span>시간대별 인입 / 처리량 / 누적처리율</span>
-      <span style="display:flex;gap:12px;font-size:11px;">
-        <span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:2px;background:#378ADD;display:inline-block;"></span>주문 인입</span>
-        <span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:2px;background:#1D9E75;display:inline-block;"></span>처리량</span>
-        <span style="display:flex;align-items:center;gap:3px;"><span style="width:12px;height:2px;background:#BA7517;display:inline-block;margin-bottom:1px;"></span>누적처리율</span>
-      </span>
-    </div>
-    <div style="padding:10px;"><div style="position:relative;height:180px;"><canvas id="capChartEl" role="img" aria-label="캡처용 시간대별 차트">-</canvas></div></div>
-  </div>
-  <div style="text-align:right;margin-top:6px;padding-right:4px;">
-    <span style="font-size:11px;color:rgba(100,100,100,0.4);letter-spacing:0.3px;">여주B2C센터 · 최용준 · ${dateStr}</span>
+  ${buildCapHourlyTable(rows,orderByHour,doneByHour,pre)}
+  <div style="text-align:right;margin-top:8px;padding-right:4px;">
+    <span style="font-size:11px;color:rgba(200,208,224,0.25);letter-spacing:0.3px;">여주B2C센터 · 최용준 · ${dateStr}</span>
   </div>`;
+}
 
-  // 차트 렌더
-  const existing=Chart.getChart('capChartEl');if(existing)existing.destroy();
-  let co2=0,cd2=0;
-  const rD2=oData.map((o,i)=>{co2+=o;cd2+=dData[i];return co2>0?Math.round(cd2/co2*100):0;});
-  const lp2={id:'lp2',afterDatasetsDraw(chart){const ctx=chart.ctx;[0,1].forEach(di=>{const meta=chart.getDatasetMeta(di);meta.data.forEach((bar,i)=>{const v=chart.data.datasets[di].data[i];if(!v||v===0)return;ctx.save();ctx.font='bold 9px -apple-system,sans-serif';ctx.fillStyle=di===0?'#0C447C':'#085041';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(v.toLocaleString(),bar.x,bar.y-1);ctx.restore();});});}};
-  new Chart(document.getElementById('capChartEl'),{
-    plugins:[lp2],
-    data:{labels:chartLabels,datasets:[
-      {type:'bar',label:'주문 인입',data:oData,backgroundColor:'rgba(55,138,221,0.75)',borderRadius:2,yAxisID:'y'},
-      {type:'bar',label:'처리량',data:dData,backgroundColor:'rgba(29,158,117,0.75)',borderRadius:2,yAxisID:'y'},
-      {type:'line',label:'누적처리율',data:rD2,borderColor:'#BA7517',borderWidth:1.5,pointBackgroundColor:'#BA7517',pointRadius:3,tension:0.3,fill:false,yAxisID:'y2',order:10}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},interaction:{mode:'index',intersect:false},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{if(ctx.dataset.label==='누적처리율')return' 누적처리율: '+ctx.parsed.y+'%';return' '+ctx.dataset.label+': '+ctx.parsed.y.toLocaleString()+'건';}}}},
-      scales:{x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11},maxRotation:0,autoSkip:false}},y:{position:'left',grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11},callback:v=>v>=1000?(v/1000).toFixed(1)+'k':v}},y2:{position:'right',min:0,max:100,grid:{drawOnChartArea:false},ticks:{font:{size:11},color:'#BA7517',callback:v=>v+'%'}}}}
-  });
+function buildCapHourlyTable(rows,orderByHour,doneByHour,pre){
+  const now=new Date(),curH=now.getHours();
+  const TH=`padding:9px 12px;text-align:center;font-size:13px;font-weight:600;background:#252d3f;color:#c8d0e0;border-bottom:1px solid rgba(255,255,255,0.12);border-right:0.5px solid rgba(255,255,255,0.07);white-space:nowrap;`;
+  const THL=`padding:9px 12px;text-align:left;font-size:13px;font-weight:600;background:#252d3f;color:#c8d0e0;border-bottom:1px solid rgba(255,255,255,0.12);border-right:0.5px solid rgba(255,255,255,0.07);white-space:nowrap;`;
+  const TD=`padding:8px 12px;text-align:center;font-size:13px;color:#e8ecf8;border-bottom:0.5px solid rgba(255,255,255,0.07);border-right:0.5px solid rgba(255,255,255,0.07);`;
+  const TDL=`padding:8px 12px;text-align:left;font-size:13px;color:#e8ecf8;border-bottom:0.5px solid rgba(255,255,255,0.07);border-right:0.5px solid rgba(255,255,255,0.07);`;
+
+  // 시간대별 데이터 구성
+  const hours=[{label:'00시~09시',h:null,pre:true},...Array.from({length:15},(v,i)=>({label:`${i+9}시~${i+10}시`,h:i+9,pre:false}))];
+
+  let cumOrder=0,cumDone=0;
+  const rowsHtml=hours.map(({label,h,pre:isPre})=>{
+    const isCurrent=h===curH;
+    const isNext=h===curH+1;
+    const bg=isCurrent?'background:#1e3a5f;':'background:#1e2433;';
+    const order=isPre?pre:(h!==null?orderByHour[h]||0:0);
+    const done=isPre?Object.entries(doneByHour).filter(([dh])=>parseInt(dh)<9).reduce((a,[,v])=>a+v,0):(h!==null?doneByHour[h]||0:0);
+    cumOrder+=order;
+    cumDone+=done;
+    const uph=done>0&&order>0?(done/1).toFixed(1):'-';
+    const uphVal=(h!==null&&!isPre&&done>0&&(orderByHour[h]||0)>0)?(done/(1)).toFixed(1):'-';
+    const rate=cumOrder>0?Math.round(cumDone/cumOrder*100):0;
+    const rateCol=rate>=80?'#4ade80':rate>=40?'#fbbf24':'#f87171';
+    const gaugeW=Math.min(rate,100);
+    const currentMark=isCurrent?` <span style="color:#fbbf24;font-size:11px;">▶</span>`:'';
+
+    return`<tr style="${bg}${isCurrent?'outline:1px solid rgba(96,165,250,0.4);outline-offset:-1px;':''}">
+      <td style="${TDL}${bg}font-weight:${isCurrent?'700':'400'};color:${isCurrent?'#93c5fd':'#c8d0e0'};">${label}${currentMark}</td>
+      <td style="${TD}${bg}color:#93c5fd;">${order>0?order.toLocaleString():'-'}</td>
+      <td style="${TD}${bg}color:#c8d0e0;font-weight:500;">${cumOrder>0?cumOrder.toLocaleString():'-'}</td>
+      <td style="${TD}${bg}color:#6ee7b7;">${done>0?done.toLocaleString():'-'}</td>
+      <td style="${TD}${bg}color:#fbbf24;">${done>0&&!isPre?(done).toFixed(1):'-'}</td>
+      <td style="${TD}${bg}color:#6ee7b7;font-weight:500;">${cumDone>0?cumDone.toLocaleString():'-'}</td>
+      <td style="${TD}${bg}min-width:140px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="flex:1;background:rgba(255,255,255,0.08);border-radius:3px;height:8px;">
+            <div style="height:8px;border-radius:3px;width:${gaugeW}%;background:${rateCol};"></div>
+          </div>
+          <span style="font-size:13px;font-weight:700;color:${rateCol};min-width:32px;">${rate}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return`<div style="background:#1a2030;border:0.5px solid rgba(255,255,255,0.1);border-radius:10px;overflow:hidden;">
+    <div style="background:#1e2a40;color:#c8d0e0;padding:9px 16px;font-size:14px;font-weight:600;">
+      시간대별 처리 현황 <span style="font-size:12px;font-weight:400;color:#6b7a94;">(주문인입 ▶ 백오더 미포함)</span>
+    </div>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr>
+        <th style="${THL}">구분</th>
+        <th style="${TH}">시간별 인입</th>
+        <th style="${TH}">누적 주문인입</th>
+        <th style="${TH}">처리량</th>
+        <th style="${TH}">생산성</th>
+        <th style="${TH}">누적 처리량</th>
+        <th style="${TH}">누적 처리율</th>
+      </tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+  </div>`;
 }
 // ===== 3번: 작업시간 자동 증가 =====
 const autoHrsState={day:true,eve:true,ngt:true};
@@ -1370,8 +1356,16 @@ function renderSummary(rows){
   const snu=document.getElementById('s-ngt-uph');if(snu)snu.textContent=nUPH;
   document.getElementById('s-uph').textContent=tUPH;
 
-  // 인력 카드
-  const sdp=document.getElementById('s-day-ppl');if(sdp)sdp.textContent=dayPpl||'-';
+  // 탭바 KPI 업데이트
+  const dispText=document.getElementById('s-dispatch')?.textContent||'-';
+  const tkd=document.getElementById('tkpi-dispatch');if(tkd)tkd.textContent=dispText;
+  const tkdu=document.getElementById('tkpi-day-uph');if(tkdu)tkdu.textContent=dUPH;
+  const tknu=document.getElementById('tkpi-ngt-uph');if(tknu)tknu.textContent=nUPH;
+  const tktu=document.getElementById('tkpi-tot-uph');if(tktu)tktu.textContent='전체 '+tUPH;
+  const tkdp=document.getElementById('tkpi-day-ppl');if(tkdp)tkdp.textContent=dayPpl;
+  const tkep=document.getElementById('tkpi-eve-ppl');if(tkep)tkep.textContent=evePpl;
+  const tknp=document.getElementById('tkpi-ngt-ppl');if(tknp)tknp.textContent=ngtPpl;
+  const tktp=document.getElementById('tkpi-tot-ppl');if(tktp)tktp.textContent=dayPpl+evePpl+ngtPpl;
   const sep=document.getElementById('s-eve-ppl');if(sep)sep.textContent=evePpl||'-';
   const snp=document.getElementById('s-ngt-ppl');if(snp)snp.textContent=ngtPpl||'-';
   const sp=document.getElementById('s-ppl');if(sp)sp.textContent=(dayPpl+evePpl+ngtPpl)+'명';
