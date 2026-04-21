@@ -938,15 +938,19 @@ function buildCapLayout(){
   }
   function fmtN(v){return v>0?v.toLocaleString():'-';}
 
-  // 배송유형별 테이블
-  const dlivRows=DELIVERY_ORDER.filter(k=>dMap[k]&&dMap[k].tot>0).map(k=>{const v=dMap[k];const p=Math.round(v.dn/v.tot*100);const ud=undone(v);
-    return`<tr><td style="${S.tdl}">${k}</td><td style="${S.td}">${v.tot.toLocaleString()}</td><td style="${S.td}">${fmtN(v.nw)}</td><td style="${S.td}">${fmtN(v.al)}</td><td style="${S.td}">${fmtN(v.pk)}</td><td style="${S.td}">${fmtN(v.rd)}</td><td style="${S.td}${S.ud}">${fmtN(ud)}</td><td style="${S.td}${S.dn}">${v.dn.toLocaleString()}</td><td style="${S.td}">${g(p)}</td></tr>`;
+  // 배송유형별 테이블 (고정 행 - 없으면 0 표시)
+  const dlivRows=DELIVERY_ORDER.map(k=>{
+    const v=dMap[k]||mkStat();
+    const p=v.tot>0?Math.round(v.dn/v.tot*100):0;const ud=undone(v);
+    return`<tr><td style="${S.tdl}">${k}</td><td style="${S.td}">${v.tot>0?v.tot.toLocaleString():'0'}</td><td style="${S.td}">${fmtN(v.nw)}</td><td style="${S.td}">${fmtN(v.al)}</td><td style="${S.td}">${fmtN(v.pk)}</td><td style="${S.td}">${fmtN(v.rd)}</td><td style="${S.td}${S.ud}">${v.tot>0?fmtN(ud):'0'}</td><td style="${S.td}${S.dn}">${v.tot>0?v.dn.toLocaleString():'0'}</td><td style="${S.td}">${g(p)}</td></tr>`;
   });
   const dTot=`<tr style="${S.tot}"><td style="${S.tdl}${S.tot}">計</td><td style="${S.td}${S.tot}">${tot.toLocaleString()}</td><td style="${S.td}${S.tot}">${fmtN(nw)}</td><td style="${S.td}${S.tot}">${fmtN(al)}</td><td style="${S.td}${S.tot}">${fmtN(pk)}</td><td style="${S.td}${S.tot}">${fmtN(rd)}</td><td style="${S.td}${S.ud}">${fmtN(ud)}</td><td style="${S.td}${S.dn}">${dn.toLocaleString()}</td><td style="${S.td}${S.tot}">${g(prog)}</td></tr>`;
 
-  // 주문분류별
-  const ordRows=ORDER_TYPES.filter(k=>oMap[k]&&oMap[k].tot>0).map(k=>{const v=oMap[k];const p=Math.round(v.dn/v.tot*100);const ud=undone(v);
-    return`<tr><td style="${S.tdl}">${k}</td><td style="${S.td}">${v.tot.toLocaleString()}</td><td style="${S.td}">${fmtN(v.nw)}</td><td style="${S.td}">${fmtN(v.al)}</td><td style="${S.td}">${fmtN(v.pk)}</td><td style="${S.td}">${fmtN(v.rd)}</td><td style="${S.td}${S.ud}">${fmtN(undone(v))}</td><td style="${S.td}${S.dn}">${v.dn.toLocaleString()}</td><td style="${S.td}">${g(p)}</td></tr>`;
+  // 주문분류별 (고정 행 - 없으면 0 표시)
+  const ordRows=ORDER_TYPES.map(k=>{
+    const v=oMap[k]||mkStat();
+    const p=v.tot>0?Math.round(v.dn/v.tot*100):0;
+    return`<tr><td style="${S.tdl}">${k}</td><td style="${S.td}">${v.tot>0?v.tot.toLocaleString():'0'}</td><td style="${S.td}">${fmtN(v.nw)}</td><td style="${S.td}">${fmtN(v.al)}</td><td style="${S.td}">${fmtN(v.pk)}</td><td style="${S.td}">${fmtN(v.rd)}</td><td style="${S.td}${S.ud}">${v.tot>0?fmtN(undone(v)):'0'}</td><td style="${S.td}${S.dn}">${v.tot>0?v.dn.toLocaleString():'0'}</td><td style="${S.td}">${g(p)}</td></tr>`;
   });
   const oTot=`<tr style="${S.tot}"><td style="${S.tdl}${S.tot}">計</td><td style="${S.td}${S.tot}">${tot.toLocaleString()}</td><td style="${S.td}${S.tot}">${fmtN(nw)}</td><td style="${S.td}${S.tot}">${fmtN(al)}</td><td style="${S.td}${S.tot}">${fmtN(pk)}</td><td style="${S.td}${S.tot}">${fmtN(rd)}</td><td style="${S.td}${S.ud}">${fmtN(ud)}</td><td style="${S.td}${S.dn}">${dn.toLocaleString()}</td><td style="${S.td}${S.tot}">${g(prog)}</td></tr>`;
 
@@ -957,13 +961,12 @@ function buildCapLayout(){
   let floorRows='';
   FLOORS.forEach(f=>{
     const ft=fd2[f]._tot;if(!ft.tot)return;
-    const activeTypes=ORDER_TYPES.filter(o=>fd2[f][o]&&fd2[f][o].tot>0);
     const fp=Math.round(ft.dn/ft.tot*100);
     let first=true;
-    activeTypes.forEach(o=>{
-      const v=fd2[f][o];if(!v.tot)return;
-      const p=Math.round(v.dn/v.tot*100);const ud2=undone(v);
-      floorRows+=`<tr>${first?`<td style="${S.td}font-weight:700;vertical-align:middle;border:0.5px solid #dde;" rowspan="${activeTypes.length+1}">${f}</td>`:''}<td style="${S.tdl}">${o}</td><td style="${S.td}">${v.tot.toLocaleString()}</td><td style="${S.td}">${fmtN(v.nw)}</td><td style="${S.td}">${fmtN(v.al)}</td><td style="${S.td}">${fmtN(v.pk)}</td><td style="${S.td}">${fmtN(v.rd)}</td><td style="${S.td}${S.ud}">${fmtN(ud2)}</td><td style="${S.td}${S.dn}">${v.dn.toLocaleString()}</td><td style="${S.td}">${g(p)}</td></tr>`;
+    ORDER_TYPES.forEach(o=>{
+      const v=fd2[f][o]||mkStat();
+      const p=v.tot>0?Math.round(v.dn/v.tot*100):0;const ud2=undone(v);
+      floorRows+=`<tr>${first?`<td style="${S.td}font-weight:700;vertical-align:middle;border:0.5px solid #dde;" rowspan="${ORDER_TYPES.length+1}">${f}</td>`:''}<td style="${S.tdl}">${o}</td><td style="${S.td}">${v.tot>0?v.tot.toLocaleString():'0'}</td><td style="${S.td}">${fmtN(v.nw)}</td><td style="${S.td}">${fmtN(v.al)}</td><td style="${S.td}">${fmtN(v.pk)}</td><td style="${S.td}">${fmtN(v.rd)}</td><td style="${S.td}${S.ud}">${v.tot>0?fmtN(ud2):'0'}</td><td style="${S.td}${S.dn}">${v.tot>0?v.dn.toLocaleString():'0'}</td><td style="${S.td}">${g(p)}</td></tr>`;
       first=false;
     });
     floorRows+=`<tr style="${S.sub}"><td style="${S.tdl}${S.sub}">${f} 소계</td><td style="${S.td}${S.sub}">${ft.tot.toLocaleString()}</td><td style="${S.td}${S.sub}">${fmtN(ft.nw)}</td><td style="${S.td}${S.sub}">${fmtN(ft.al)}</td><td style="${S.td}${S.sub}">${fmtN(ft.pk)}</td><td style="${S.td}${S.sub}">${fmtN(ft.rd)}</td><td style="${S.td}${S.ud}">${fmtN(undone(ft))}</td><td style="${S.td}${S.dn}">${ft.dn.toLocaleString()}</td><td style="${S.td}${S.sub}">${g(fp)}</td></tr>`;
