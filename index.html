@@ -555,7 +555,7 @@ let ngtManualList=[]; // 야간 수동 [{id, ppl, hrs, shift}] shift=day|ngt
 let sumOC,sumDC,orderC,doneC,uphC;
 let currentTab='summary';
 
-const FLOORS=['B1F','1F','3F'],CUT_HOUR=6;
+const FLOORS=['B1F','1F','3F'],CUT_HOUR=8;
 const ORDER_TYPES=['단포','합포장','단수','추천패턴','지정패턴'];
 const DELIVERY_ORDER=['당일_N도착보장','도착보장','익일','얼티밋_N도착보장'];
 const CBM_MAP={A12:{w:260,d:180,h:130},A15:{w:310,d:190,h:130},A18:{w:340,d:240,h:200},A19:{w:320,d:220,h:185},B11:{w:335,d:300,h:210},B12:{w:380,d:260,h:230},B15:{w:450,d:320,h:210},C12:{w:440,d:370,h:295},D11:{w:560,d:380,h:270},E11:{w:680,d:510,h:320},F01:{w:350,d:200,h:80},F02:{w:500,d:220,h:80},F03:{w:610,d:240,h:100},H01:{w:1000,d:150,h:340},H02:{w:1000,d:280,h:340},J01:{w:260,d:350,h:300}};
@@ -1309,9 +1309,23 @@ function showToast(msg){const t=document.getElementById('cap-toast');t.textConte
 function switchDtab(t){document.getElementById('dtab-basic').classList.toggle('on',t==='basic');document.getElementById('dtab-cbm').classList.toggle('on',t==='cbm');document.getElementById('dsec-basic').style.display=t==='basic'?'block':'none';document.getElementById('dsec-cbm').style.display=t==='cbm'?'block':'none';if(t==='cbm')calcCBM();}
 function readXlsx(file,cb){const r=new FileReader();r.onload=e=>{const wb=XLSX.read(e.target.result,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];cb(XLSX.utils.sheet_to_json(ws,{defval:''}));};r.readAsArrayBuffer(file);}
 function purgeOldDay(rows){
-  const now=new Date(),ts=now.getFullYear()+'-'+(now.getMonth()+1).toString().padStart(2,'0')+'-'+now.getDate().toString().padStart(2,'0');
+  // 작업일: RAW 내 확정일자 최빈값(=당일)
+  const dateCnt={};
+  rows.forEach(r=>{const d=(r['확정일자']||r['출고일자']||'').toString().trim().slice(0,10);if(d&&d.includes('-'))dateCnt[d]=(dateCnt[d]||0)+1;});
+  const workDay=Object.entries(dateCnt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'';
+  const ts=workDay;
   let kept=0,removed=0;
-  const filtered=rows.filter(r=>{const dv=(r['출고일자']||r['확정일자']||'').toString().trim(),tv=(r['출고시간']||r['확정시간']||'').toString().trim();if(!dv||!tv){kept++;return true;}let ds=dv.includes('-')?dv.slice(0,10):dv.slice(0,10);const h=parseInt(tv.split(':')[0]);if(ds===ts&&h<CUT_HOUR){removed++;return false;}kept++;return true;});
+  const filtered=rows.filter(r=>{
+    const dv=(r['출고일자']||r['확정일자']||'').toString().trim();
+    const tv=(r['출고시간']||r['확정시간']||'').toString().trim();
+    const status=(r['출고상태']||'').toString().trim();
+    if(!dv||!tv){kept++;return true;}
+    const ds=dv.slice(0,10);
+    const h=parseInt(tv.split(':')[0]);
+    // 당일 00시 출고완료건 제거 (전날 야간→당일 새벽 이월분)
+    if(ds===workDay&&h<CUT_HOUR&&status==='출고완료'){removed++;return false;}
+    kept++;return true;
+  });
   return{filtered,kept,removed,todayStr:ts};
 }
 function dedup(rows){
@@ -1336,7 +1350,7 @@ function handleRaw(inp){
     snapshots.push({time:tl,rows:deduped,fname:file.name,rawCount:rawRows.length,removed,dr});
     const nd=new Date(t);nd.setDate(nd.getDate()+1);const ns=(nd.getMonth()+1).toString().padStart(2,'0')+'/'+(nd.getDate()).toString().padStart(2,'0');
     const bar=document.getElementById('filter-info');bar.style.display='flex';
-    bar.innerHTML='<span class="bx bi">정제 완료</span> '+todayStr.slice(5).replace('-','/')+' 06:00 ~ '+ns+' 05:59 | 전체 <strong>'+rawRows.length.toLocaleString()+'건</strong> <span class="bx br">새벽 '+removed+'건 제거</span> <span class="bx by">중복 '+dr+'건 제거</span> <span class="bx bg">유효 '+deduped.length.toLocaleString()+'건</span>';
+    bar.innerHTML='<span class="bx bi">정제 완료</span> '+todayStr.slice(5).replace('-','/')+' 08:00 ~ '+ns+' 07:59 | 전체 <strong>'+rawRows.length.toLocaleString()+'건</strong> <span class="bx by">중복 '+dr+'건 제거</span> <span class="bx bg">유효 '+deduped.length.toLocaleString()+'건</span>';
     updateSnapMeta();renderAll();
     // 모든 렌더링 끝난 후 미매칭 체크
     setTimeout(()=>{
