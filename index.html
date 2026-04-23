@@ -562,7 +562,7 @@ const CBM_MAP={A12:{w:260,d:180,h:130},A15:{w:310,d:190,h:130},A18:{w:340,d:240,
 function calcBoxCBM(c){const b=CBM_MAP[c];return b?(b.w*b.d*b.h)/1e9:0;}
 const HOSU_CBM={'극소':calcBoxCBM('A12'),'소':calcBoxCBM('B11'),'중':calcBoxCBM('C12'),'대':calcBoxCBM('D11'),'특대':calcBoxCBM('E11')};
 function getRowCBM(r){const c=(r['박스구분']||'').toString().trim().toUpperCase(),h=(r['박스호수']||'').toString().trim();if(c==='Z99')return calcBoxCBM('C12');if(CBM_MAP[c])return calcBoxCBM(c);return HOSU_CBM[h]||calcBoxCBM('B11');}
-function normalizeOrder(o){const s=(o||'').toString().trim();if(s==='단포'||s==='동종합포')return'단포';if(s==='단수(입고박스)')return'단수';if(s==='지정패턴'||s==='지정패턴(유사)')return'지정패턴';if(s==='패턴'||s==='추천패턴')return'추천패턴';if(s==='합포장(CL)')return'합포장';return null;}
+function normalizeOrder(o){const s=(o||'').toString().trim();if(s==='단포'||s==='동종합포')return'단포';if(s==='단수(입고박스)')return'단수';if(s==='지정패턴'||s==='지정패턴(유사)'||s==='패턴')return'지정패턴';if(s==='추천패턴')return'추천패턴';if(s==='합포장(CL)')return'합포장';return null;}
 function normalizeDelivery(d){const s=(d||'').toString().trim();if(s==='당일_N도착보장'||s==='당일_도착보장')return'당일_N도착보장';if(s==='도착보장')return'도착보장';if(s==='익일'||s==='얼티밋_익일')return'익일';if(s==='얼티밋_N도착보장'||s.includes('얼티밋_N'))return'얼티밋_N도착보장';return null;}
 function statusOf(r){const s=(r['출고상태']||'').toString();if(s==='출고완료')return'done';if(s==='패킹(검수완료)')return'ready';if(s==='완전할당(완전피킹)')return'pick';if(s==='완전할당(미피킹)')return'alloc';return'new';}
 function mkStat(){return{tot:0,nw:0,al:0,pk:0,rd:0,dn:0};}
