@@ -905,12 +905,17 @@ function buildCapLayout(){
 
   // 시간대별 차트 데이터
   const orderByHour=hourlyOrderData?hourlyOrderData.hourlySum:{};
-  const doneByHour={};
-  rows.forEach(r=>{if(statusOf(r)!=='done')return;const t=(r['출고시간']||r['확정시간']||'').toString();if(!t)return;const h=parseInt(t.split(':')[0]);doneByHour[h]=(doneByHour[h]||0)+1;});
+  const doneByHour={};const doneByHourNext={};
+  // 작업일: 확정일자 최빈값
+  const workDayDH=(()=>{const dc={};rows.forEach(r=>{const d=(r['확정일자']||'').toString().trim().slice(0,10);if(d&&d.includes('-'))dc[d]=(dc[d]||0)+1;});return Object.entries(dc).sort((a,b)=>b[1]-a[1])[0]?.[0]||'';})();
+  const nextDayDH=(()=>{if(!workDayDH)return'';const d=new Date(workDayDH);d.setDate(d.getDate()+1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+  // rows는 이미 정제완료(작업일 00~05시 삭제된 상태)
+  // 작업일 확정 → doneByHour / 익일 확정 00~05시 → doneByHourNext
+  rows.forEach(r=>{if(statusOf(r)!=='done')return;const t=(r['확정시간']||'').toString();if(!t)return;const cd=(r['확정일자']||'').toString().trim().slice(0,10);const h=parseInt(t.split(':')[0]);if(isNaN(h))return;if(cd===nextDayDH&&h>=0&&h<6){doneByHourNext[h]=(doneByHourNext[h]||0)+1;}else{doneByHour[h]=(doneByHour[h]||0)+1;}});
   const pre=hourlyOrderData?hourlyOrderData.pre:0;
   const chartLabels=['00~09',...Array.from({length:15},(v,i)=>(i+9)+'시')];
   const oData=[pre,...Array.from({length:15},(v,i)=>orderByHour[i+9]||0)];
-  const dData=[Object.entries(doneByHour).filter(([h])=>parseInt(h)<9).reduce((a,[,v])=>a+v,0),...Array.from({length:15},(v,i)=>doneByHour[i+9]||0)];
+  const dData=[Object.entries(doneByHour).filter(([h])=>{const hh=parseInt(h);return(hh>=1&&hh<9)||(hh>=24&&hh<30);}).reduce((a,[,v])=>a+v,0),...Array.from({length:15},(v,i)=>doneByHour[i+9]||0)];
 
   const el=document.getElementById('cap-layout');
 
@@ -1001,19 +1006,26 @@ function buildCapLayout(){
   // 주간(09~18시)=dayPpl, 그 외=ngtPpl (석간 포함)
   // 엑셀 양식 기준: 9~10시 684건 ÷ 31명 = 22.1
 
-  const hourDefs=[{label:'00시-9시',h:null,isPre:true},...Array.from({length:21},(v,i)=>{const hh=(i+9)%24;return{label:`${(i+9)<24?(i+9)+'시':hh+'시'}-${(i+10)%24+'시'}`,h:i+9,isPre:false};})];
+  const totalOrdersCap=rows.length;
+  const hourDefs=[
+    {label:'00시-9시',h:null,isPre:true},
+    ...Array.from({length:15},(v,i)=>({label:`${i+9}시~${i+10}시`,h:i+9,isPre:false,isNight:false})),
+    ...Array.from({length:6},(v,i)=>({label:`${i}시~${i+1}시`,h:i,isPre:false,isNight:true}))
+  ];
+  const preDoneCap=0;
   let cumO=0,cumD=0;
-  const hourRows=hourDefs.map(({label,h,isPre})=>{
-    const isCur=(h!==null&&(h%24)===curH);
-    const ord=isPre?pre:(h!==null?orderByHour[h%24]||0:0);
-    const don=isPre?Object.entries(doneByHour).filter(([dh])=>parseInt(dh)<9).reduce((a,[,v])=>a+v,0):(h!==null?doneByHour[h%24]||0:0);
-    cumO+=ord;cumD+=don;
-    const rate=cumO>0?Math.round(cumD/cumO*100):0;
+  const hourRows=hourDefs.map(({label,h,isPre,isNight})=>{
+    const isCur=(h!==null&&h===curH&&(isNight?curH<6:curH>=9));
+    const ord=isPre?pre:(h!==null&&!isNight?orderByHour[h]||0:0);
+    const don=isPre?preDoneCap:(h!==null?(isNight?doneByHourNext[h]||0:doneByHour[h]||0):0);
+    cumO+=ord;
+    if(!isPre)cumD+=don;
+    const rate=isPre?0:(totalOrdersCap>0?Math.round(cumD/totalOrdersCap*100):0);
     const rc=rate>=80?'#3B6D11':rate>=40?'#854F0B':'#A32D2D';
     const rb=rate>=80?'#639922':rate>=40?'#BA7517':'#E24B4A';
     const bg=isCur?'background:#dbeafe;':'';
     // 생산성 = 처리량 ÷ 투입인원 (주간시간대=dayPpl+evePpl, 야간=ngtPpl+evePpl)
-    const hh=h!==null?h%24:null;
+    const hh=h!==null?h:null;
     const pplForH=(!isPre&&hh!==null)?(hh>=9&&hh<18?(dayPpl+evePpl):(ngtPpl+evePpl)):0;
     const prod=(!isPre&&don>0&&pplForH>0)?(don/pplForH).toFixed(1):'-';
     return`<tr style="${bg}">
@@ -1311,28 +1323,28 @@ function readXlsx(file,cb){const r=new FileReader();r.onload=e=>{const wb=XLSX.r
 function purgeOldDay(rows){
   // 작업일: RAW 내 확정일자 최빈값(=당일)
   const dateCnt={};
-  rows.forEach(r=>{const d=(r['확정일자']||r['출고일자']||'').toString().trim().slice(0,10);if(d&&d.includes('-'))dateCnt[d]=(dateCnt[d]||0)+1;});
+  rows.forEach(r=>{const d=(r['확정일자']||'').toString().trim().slice(0,10);if(d&&d.includes('-'))dateCnt[d]=(dateCnt[d]||0)+1;});
   const workDay=Object.entries(dateCnt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'';
-  const ts=workDay;
   let kept=0,removed=0;
   const filtered=rows.filter(r=>{
-    const dv=(r['출고일자']||r['확정일자']||'').toString().trim();
-    const tv=(r['출고시간']||r['확정시간']||'').toString().trim();
-    const status=(r['출고상태']||'').toString().trim();
-    if(!dv||!tv){kept++;return true;}
-    const ds=dv.slice(0,10);
-    const h=parseInt(tv.split(':')[0]);
-    // 당일 00시 출고완료건 제거 (전날 야간→당일 새벽 이월분)
-    if(ds===workDay&&h<CUT_HOUR&&status==='출고완료'){removed++;return false;}
+    const cd=(r['확정일자']||'').toString().trim().slice(0,10);
+    const ct=(r['확정시간']||'').toString().trim();
+    if(!cd||!ct){kept++;return true;}
+    const h=parseInt(ct.split(':')[0]);
+    // 작업일(당일) 확정 + 00~05시 → 전날 야간 이월분 → 제거
+    if(cd===workDay&&h>=0&&h<6){removed++;return false;}
     kept++;return true;
   });
-  return{filtered,kept,removed,todayStr:ts};
+  return{filtered,kept,removed,todayStr:workDay};
 }
 function dedup(rows){
   const seen=new Set();
   return rows.filter(r=>{
     const status=(r['출고상태']||'').toString().trim().replace(/\s/g,'');
     if(status==='오더취소'||status==='주문취소'||status.toUpperCase()==='ORDERCANCEL'||status==='취소')return false;
+    // 화물 배송처 제거
+    const carrier=(r['배송처']||'').toString().trim();
+    if(carrier==='화물')return false;
     const key=(r['출고번호']||'').toString().trim();
     if(!key)return true;
     if(seen.has(key))return false;
@@ -1616,12 +1628,17 @@ function buildComboChart(canvasId,labels,oData,dData){
 
 function renderSummaryCharts(){
   const rows=snapshots.length?snapshots[snapshots.length-1].rows:[];
-  const doneByHour={};
-  rows.forEach(r=>{if(statusOf(r)!=='done')return;const t=(r['출고시간']||r['확정시간']||'').toString();if(!t)return;const h=parseInt(t.split(':')[0]);doneByHour[h]=(doneByHour[h]||0)+1;});
+  const doneByHour={};const doneByHourNext={};
+  // 작업일: 확정일자 최빈값
+  const workDayDH=(()=>{const dc={};rows.forEach(r=>{const d=(r['확정일자']||'').toString().trim().slice(0,10);if(d&&d.includes('-'))dc[d]=(dc[d]||0)+1;});return Object.entries(dc).sort((a,b)=>b[1]-a[1])[0]?.[0]||'';})();
+  const nextDayDH=(()=>{if(!workDayDH)return'';const d=new Date(workDayDH);d.setDate(d.getDate()+1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+  // rows는 이미 정제완료(작업일 00~05시 삭제된 상태)
+  // 작업일 확정 → doneByHour / 익일 확정 00~05시 → doneByHourNext
+  rows.forEach(r=>{if(statusOf(r)!=='done')return;const t=(r['확정시간']||'').toString();if(!t)return;const cd=(r['확정일자']||'').toString().trim().slice(0,10);const h=parseInt(t.split(':')[0]);if(isNaN(h))return;if(cd===nextDayDH&&h>=0&&h<6){doneByHourNext[h]=(doneByHourNext[h]||0)+1;}else{doneByHour[h]=(doneByHour[h]||0)+1;}});
   const orderByHour=hourlyOrderData?hourlyOrderData.hourlySum:{};
   const labels=[],oData=[],dData=[];
   const pre=hourlyOrderData?hourlyOrderData.pre:0;
-  labels.push('00~09');oData.push(pre);dData.push(Object.entries(doneByHour).filter(([h])=>parseInt(h)<9).reduce((a,[,v])=>a+v,0));
+  labels.push('00~09');oData.push(pre);dData.push(0);
   for(let h=9;h<24;h++){labels.push(h+'시');oData.push(orderByHour[h]||0);dData.push(doneByHour[h]||0);}
   if(sumOC)sumOC.destroy();
   sumOC=buildComboChart('sumComboChart',labels,oData,dData);
@@ -1630,43 +1647,53 @@ function renderSummaryCharts(){
 function renderHourlyDetail(){
   const rows=snapshots.length?snapshots[snapshots.length-1].rows:[];
   const now=new Date(),currentHour=now.getHours();
-  const doneByHour={};
-  rows.forEach(r=>{if(statusOf(r)!=='done')return;const t=(r['출고시간']||r['확정시간']||'').toString();if(!t)return;const h=parseInt(t.split(':')[0]);doneByHour[h]=(doneByHour[h]||0)+1;});
+  const doneByHour={};const doneByHourNext={};
+  // 작업일: 확정일자 최빈값
+  const workDayDH=(()=>{const dc={};rows.forEach(r=>{const d=(r['확정일자']||'').toString().trim().slice(0,10);if(d&&d.includes('-'))dc[d]=(dc[d]||0)+1;});return Object.entries(dc).sort((a,b)=>b[1]-a[1])[0]?.[0]||'';})();
+  const nextDayDH=(()=>{if(!workDayDH)return'';const d=new Date(workDayDH);d.setDate(d.getDate()+1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+  // rows는 이미 정제완료(작업일 00~05시 삭제된 상태)
+  // 작업일 확정 → doneByHour / 익일 확정 00~05시 → doneByHourNext
+  rows.forEach(r=>{if(statusOf(r)!=='done')return;const t=(r['확정시간']||'').toString();if(!t)return;const cd=(r['확정일자']||'').toString().trim().slice(0,10);const h=parseInt(t.split(':')[0]);if(isNaN(h))return;if(cd===nextDayDH&&h>=0&&h<6){doneByHourNext[h]=(doneByHourNext[h]||0)+1;}else{doneByHour[h]=(doneByHour[h]||0)+1;}});
   const orderByHour=hourlyOrderData?hourlyOrderData.hourlySum:{};
   const totalMH=parseInt(document.getElementById('lr-tot-mh')?.textContent)||0;
   const mhPerHour=totalMH>0?(totalMH/12).toFixed(2):0;
 
   let cumOrder=0,cumDone=0;
   const pre=hourlyOrderData?hourlyOrderData.pre:0;
-  const preDone=Object.entries(doneByHour).filter(([h])=>parseInt(h)<9).reduce((a,[,v])=>a+v,0);
-  cumOrder+=pre;cumDone+=preDone;
-  const preRate=cumOrder>0?Math.round(cumDone/cumOrder*100):0;
-  let html='<tr><td style="font-weight:500;">00시~09시</td><td style="color:var(--ts);">'+(pre>0?pre.toLocaleString():'-')+'</td><td style="font-weight:500;">'+cumOrder.toLocaleString()+'</td><td>'+(preDone>0?preDone.toLocaleString():'-')+'</td><td>-</td><td>'+cumDone.toLocaleString()+'</td>'+rateCell(preRate)+'</tr>';
+  const totalOrders=rows.length;
+  cumOrder+=pre;
+  let html='<tr><td style="font-weight:500;">00시~09시</td><td style="color:var(--ts);">'+(pre>0?pre.toLocaleString():'-')+'</td><td style="font-weight:500;">'+cumOrder.toLocaleString()+'</td><td>-</td><td>-</td><td>-</td>'+rateCell(0)+'</tr>';
 
   for(let h=9;h<24;h++){
     const orderIn=orderByHour[h]||0,doneIn=doneByHour[h]||0;
     cumOrder+=orderIn;cumDone+=doneIn;
-    const cumRate=cumOrder>0?Math.round(cumDone/cumOrder*100):0;
+    const cumRate=totalOrders>0?Math.round(cumDone/totalOrders*100):0;
     const prod=doneIn>0&&parseFloat(mhPerHour)>0?(doneIn/parseFloat(mhPerHour)).toFixed(1):'-';
     const isCur=h===currentHour;
-    html+='<tr'+(isCur?' class="hour-cur"':'')+'>'
-      +'<td style="font-weight:500;">'+h+'시~'+(h+1)+'시'+(isCur?' ▶':'')+'</td>'
-      +'<td>'+(orderIn>0?orderIn.toLocaleString():'-')+'</td>'
-      +'<td style="font-weight:500;">'+cumOrder.toLocaleString()+'</td>'
-      +'<td>'+(doneIn>0?doneIn.toLocaleString():'-')+'</td>'
-      +'<td>'+prod+'</td>'
-      +'<td>'+cumDone.toLocaleString()+'</td>'
-      +rateCell(cumRate)+'</tr>';
+    html+=`<tr class="${isCur?'hcur':''}"><td style="font-weight:${isCur?'700':'500'};">${h}시~${h+1}시${isCur?' ▶':''}</td><td style="color:var(--ts);">${orderIn>0?orderIn.toLocaleString():'-'}</td><td>${cumOrder>0?cumOrder.toLocaleString():'-'}</td><td>${doneIn>0?doneIn.toLocaleString():'-'}</td><td>${prod}</td><td>${cumDone>0?cumDone.toLocaleString():'-'}</td>${rateCell(cumRate)}</tr>`;
+  }
+
+  // 익일 00시~05시 (야간 처리분) - doneByHourNext 사용
+  for(let h=0;h<6;h++){
+    const doneIn=doneByHourNext[h]||0;
+    cumDone+=doneIn;
+    const cumRate=totalOrders>0?Math.round(cumDone/totalOrders*100):0;
+    const prod=doneIn>0&&parseFloat(mhPerHour)>0?(doneIn/parseFloat(mhPerHour)).toFixed(1):'-';
+    const isCur=h===currentHour&&currentHour<6;
+    const nextH=h+1;
+    html+=`<tr class="${isCur?'hcur':''}"><td style="font-weight:${isCur?'700':'500'};">${h}시~${nextH}시${isCur?' ▶':''}</td><td>-</td><td>-</td><td>${doneIn>0?doneIn.toLocaleString():'-'}</td><td>${prod}</td><td>${cumDone>0?cumDone.toLocaleString():'-'}</td>${rateCell(cumRate)}</tr>`;
   }
   document.getElementById('tbody-hourly-detail').innerHTML=html;
   document.getElementById('h-total-done').textContent=cumDone.toLocaleString();
-  document.getElementById('h-done-rate').textContent='처리율 '+(cumOrder>0?Math.round(cumDone/cumOrder*100):0)+'%';
+  document.getElementById('h-done-rate').textContent='처리율 '+(totalOrders>0?Math.round(cumDone/totalOrders*100):0)+'%';
 
   // 시간대별 현황 탭 통합 차트
   const labels2=[],oData=[],dData=[];
   const pre2=hourlyOrderData?hourlyOrderData.pre:0;
-  labels2.push('00~09');oData.push(pre2);dData.push(Object.entries(doneByHour).filter(([h])=>parseInt(h)<9).reduce((a,[,v])=>a+v,0));
+  labels2.push('00~09');oData.push(pre2);
+  dData.push(0);
   for(let h=9;h<24;h++){labels2.push(h+'시');oData.push(orderByHour[h]||0);dData.push(doneByHour[h]||0);}
+  for(let h=0;h<6;h++){labels2.push(h+'시~'+(h+1)+'시');oData.push(0);dData.push(doneByHourNext[h]||0);}
   if(orderC)orderC.destroy();
   orderC=buildComboChart('hourlyComboChart',labels2,oData,dData);
 
