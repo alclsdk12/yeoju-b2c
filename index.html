@@ -911,11 +911,11 @@ function buildCapLayout(){
   const nextDayDH=(()=>{if(!workDayDH)return'';const d=new Date(workDayDH);d.setDate(d.getDate()+1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
   // rows는 이미 정제완료(작업일 00~05시 삭제된 상태)
   // 작업일 확정 → doneByHour / 익일 확정 00~05시 → doneByHourNext
-  rows.forEach(r=>{if(statusOf(r)!=='done')return;const t=(r['확정시간']||r['출고시간']||'').toString();if(!t)return;const cd=(r['확정일자']||r['출고일자']||'').toString().trim().slice(0,10);const h=parseInt(t.split(':')[0]);if(isNaN(h))return;if(cd===nextDayDH&&h>=0&&h<6){doneByHourNext[h]=(doneByHourNext[h]||0)+1;}else{doneByHour[h]=(doneByHour[h]||0)+1;}});
+  rows.forEach(r=>{if(statusOf(r)!=='done')return;const t=(r['출고시간']||r['확정시간']||'').toString();if(!t)return;const cd=(r['출고일자']||r['확정일자']||'').toString().trim().slice(0,10);const h=parseInt(t.split(':')[0]);if(isNaN(h))return;if(cd===nextDayDH&&h>=0&&h<6){doneByHourNext[h]=(doneByHourNext[h]||0)+1;}else{doneByHour[h]=(doneByHour[h]||0)+1;}});
   const pre=hourlyOrderData?hourlyOrderData.pre:0;
   const chartLabels=['00~09',...Array.from({length:15},(v,i)=>(i+9)+'시')];
   const oData=[pre,...Array.from({length:15},(v,i)=>orderByHour[i+9]||0)];
-  const dData=[Object.entries(doneByHour).filter(([h])=>{const hh=parseInt(h);return(hh>=1&&hh<9)||(hh>=24&&hh<30);}).reduce((a,[,v])=>a+v,0),...Array.from({length:15},(v,i)=>doneByHour[i+9]||0)];
+  const dData=[0,...Array.from({length:15},(v,i)=>doneByHour[i+9]||0)];
 
   const el=document.getElementById('cap-layout');
 
@@ -1634,7 +1634,7 @@ function renderSummaryCharts(){
   const nextDayDH=(()=>{if(!workDayDH)return'';const d=new Date(workDayDH);d.setDate(d.getDate()+1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
   // rows는 이미 정제완료(작업일 00~05시 삭제된 상태)
   // 작업일 확정 → doneByHour / 익일 확정 00~05시 → doneByHourNext
-  rows.forEach(r=>{if(statusOf(r)!=='done')return;const t=(r['확정시간']||r['출고시간']||'').toString();if(!t)return;const cd=(r['확정일자']||r['출고일자']||'').toString().trim().slice(0,10);const h=parseInt(t.split(':')[0]);if(isNaN(h))return;if(cd===nextDayDH&&h>=0&&h<6){doneByHourNext[h]=(doneByHourNext[h]||0)+1;}else{doneByHour[h]=(doneByHour[h]||0)+1;}});
+  rows.forEach(r=>{if(statusOf(r)!=='done')return;const t=(r['출고시간']||r['확정시간']||'').toString();if(!t)return;const cd=(r['출고일자']||r['확정일자']||'').toString().trim().slice(0,10);const h=parseInt(t.split(':')[0]);if(isNaN(h))return;if(cd===nextDayDH&&h>=0&&h<6){doneByHourNext[h]=(doneByHourNext[h]||0)+1;}else{doneByHour[h]=(doneByHour[h]||0)+1;}});
   const orderByHour=hourlyOrderData?hourlyOrderData.hourlySum:{};
   const labels=[],oData=[],dData=[];
   const pre=hourlyOrderData?hourlyOrderData.pre:0;
@@ -1653,7 +1653,7 @@ function renderHourlyDetail(){
   const nextDayDH=(()=>{if(!workDayDH)return'';const d=new Date(workDayDH);d.setDate(d.getDate()+1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
   // rows는 이미 정제완료(작업일 00~05시 삭제된 상태)
   // 작업일 확정 → doneByHour / 익일 확정 00~05시 → doneByHourNext
-  rows.forEach(r=>{if(statusOf(r)!=='done')return;const t=(r['확정시간']||r['출고시간']||'').toString();if(!t)return;const cd=(r['확정일자']||r['출고일자']||'').toString().trim().slice(0,10);const h=parseInt(t.split(':')[0]);if(isNaN(h))return;if(cd===nextDayDH&&h>=0&&h<6){doneByHourNext[h]=(doneByHourNext[h]||0)+1;}else{doneByHour[h]=(doneByHour[h]||0)+1;}});
+  rows.forEach(r=>{if(statusOf(r)!=='done')return;const t=(r['출고시간']||r['확정시간']||'').toString();if(!t)return;const cd=(r['출고일자']||r['확정일자']||'').toString().trim().slice(0,10);const h=parseInt(t.split(':')[0]);if(isNaN(h))return;if(cd===nextDayDH&&h>=0&&h<6){doneByHourNext[h]=(doneByHourNext[h]||0)+1;}else{doneByHour[h]=(doneByHour[h]||0)+1;}});
   const orderByHour=hourlyOrderData?hourlyOrderData.hourlySum:{};
   const totalMH=parseInt(document.getElementById('lr-tot-mh')?.textContent)||0;
   const mhPerHour=totalMH>0?(totalMH/12).toFixed(2):0;
